@@ -1,6 +1,6 @@
-//#include "handlers.s"
+#include "handlers.s" // Enable e Disable interr.
 #include "cmips.h"
-#include "cMIPSio.c"
+#include "cMIPSio.c" // Funções básicas (printf scanf etc.)
 //#include <stdio.h>
 
 typedef struct {
@@ -47,6 +47,24 @@ typedef struct serial {
 
 extern Utype U;
 
+int proberx() {
+    return U.nrx;
+}
+
+int probetx() {
+    return U.ntx;
+}
+
+int iostat() {
+    return uart.cs.stat && 0x000000ff;
+}
+
+void ioctl(int i) {
+    i = i && 0x000000ff; // Soh pode escrever no byte menos significativo. Zera tudo.
+    uart.cs.ctl = i;
+    return ;
+}
+
 char newgetc() {
     char c;
     int status;
@@ -68,30 +86,33 @@ void newputc(char c) {
     int x,status;
     if(U.ntx > 0) {
         if(U.ntx == 16 && uart.cs.ctl.intTx == 0) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
-            return wrtc(c);
+            wrtc(c);
+            return ;
         }
         U.txqueue[U.txtail] = c;
         U.txtail = (U.txtail + 1) % 16;
-        status = disableInterr();
+        uart.cs.stat = disableInterr();
         U.ntx = U.ntx - 1;
-        status = enableInterr();
+        uart.cs.stat = enableInterr();
 	x = 1;
     }
     else {
         x = 0;
     }
-    return x; // Eu retorno algo sendo void? GG!
+    return ;
+    //return x; // Eu retorno algo sendo void? GG! Maybe fazer o x ser global pra poder retornar o erro.
 }
 
+/*
 int wrtc(char c) {
-    uart.d.tx = (int)
+    uart.d.tx = (int)c;
     return uart.d.tx;
 }
+*/
 
 volatile Tserial *uart = (void *)IO_UART_BOT_ADDR;
 
 int main() {
-    volatile Tserial *uart;
     //volatile int *counter;
     char c;
 
