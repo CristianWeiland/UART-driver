@@ -56,12 +56,13 @@ int probetx() {
 }
 
 int iostat() {
-    return uart.cs.stat && 0x000000ff;
+    return uart.cs.stat & 0x000000ff; // Pelo fato de ter que retornar no lsb(byte) talvez tem que deslocar em vez de fazer o and.
 }
 
 void ioctl(int i) {
-    i = i && 0x000000ff; // Soh pode escrever no byte menos significativo. Zera tudo.
-    uart.cs.ctl = i;
+    i = i & 0x000000ff; // Soh pode escrever no byte menos significativo. Zera tudo.
+    uart.cs.ctl = uart.cs.ctl & 0xffffff00;
+    uart.cs.ctl = uart.cs.ctl | i;
     return ;
 }
 
