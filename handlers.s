@@ -2,7 +2,7 @@
 	.include "cMIPS.s"
 	.text
 	.set noreorder
-        .align 2
+    .align 2
 	.global rx_queue , rx_hd , rx_tl # reception queue and pointers
 	.comm rx_queue 16
 	.comm rx_hd 4

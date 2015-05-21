@@ -1,7 +1,6 @@
 #include "handlers.s" // Enable e Disable interr.
 #include "cmips.h"
 #include "cMIPSio.c" // Funções básicas (printf scanf etc.)
-//#include <stdio.h>
 
 typedef struct {
     int nrx;
@@ -66,24 +65,24 @@ void ioctl(int i) {
     return ;
 }
 
-char newgetc() {
+char getc() {
     char c;
     int status;
     // Declaração
     if(U.nrx > 0) {
+        status = disableInterr();
         c = U.rxqueue[U.rxhead]; // O char que vou retornar pega um char da cabeça da fila de recepção.
         U.rxhead = (U.rxhead + 1) % 16; // Incrementa a cabeça da fila de modo circular (usando mod tamanho da fila).
-        status = disableInterr();
         U.nrx = U.nrx - 1;
         status = enableInterr();
     }
     else {
-        c = NULL;
+        c = '\n';
     }
     return c;
 }
 
-void newputc(char c) {
+void putc(char c) {
     int x,status;
     if(U.ntx > 0) {
         if(U.ntx == 16 && uart.cs.ctl.intTx == 0) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
@@ -114,15 +113,36 @@ int wrtc(char c) {
 volatile Tserial *uart = (void *)IO_UART_BOT_ADDR;
 
 int main() {
-    //volatile int *counter;
+    int i;
+    volatile int state;
+    volatile int *counter;
+    Tcontrol ctrl;
+    volatile Tstatus status;
     char c;
 
-    //counter = (int *)IO_COUNT_BOT_ADDR;
+    ctrl.ign = 0;
+    ctrl.intTX = 0;
+    ctrl.intRX = 0;
+    ctrl.speed = 0;
+
+    counter = (int *)IO_COUNT_BOT_ADDR;
     uart = (void *)IO_UART_BOT_ADDR;
+
+    uart->cs.ctl = ctrl;
+
+    i = -1;
+
+    do {
+        i++;
+        while( ! ( state = uart->cs.stat.s && TXempty )) {};
+        //r[i] = char(uart->d.rx);
+        r[i] = getc();
+        to_stdout( r[i] );
+    } while( r[i] != '\n' );
 
     // Teste entrada e saida da UART.
     while( (c = newgetc()) != '\0') {
-        newputc(c);
+        putc(c);
         printf("%c",c);
     }
     printf("\n");
