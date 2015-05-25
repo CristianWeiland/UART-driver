@@ -87,7 +87,7 @@ char getc() {
 void putc(char c) {
     int x,status;
     if(U.ntx > 0) {
-        if(U.ntx == 16 && uart.cs.ctl.intTx == 0) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
+        if(U.ntx == 16 && uart->cs.ctl.intTx == 0) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
             wrtc(c);
             return ;
         }
@@ -96,7 +96,7 @@ void putc(char c) {
         status = disableInterr();
         U.ntx = U.ntx - 1;
         status = enableInterr();
-	x = 1;
+	    x = 1;
     }
     else {
         x = 0;
@@ -105,12 +105,12 @@ void putc(char c) {
     //return x; // Eu retorno algo sendo void? GG! Maybe fazer o x ser global pra poder retornar o erro.
 }
 
-/*
+
 int wrtc(char c) {
-    uart.d.tx = (int)c;
+    uart->d.tx = (int)c;
     return uart.d.tx;
 }
-*/
+
 
 volatile Tserial *uart = (void *)IO_UART_BOT_ADDR;
 
@@ -143,9 +143,9 @@ int main() {
     } while( r[i] != '\n' );
 
     // Teste entrada e saida da UART.
-    while( (c = newgetc()) != '\0') {
+    /*while( (c = getc()) != '\0') {
         putc(c);
         printf("%c",c);
-    }
-    printf("\n");
+    }*/
+    print('\n');
 }
