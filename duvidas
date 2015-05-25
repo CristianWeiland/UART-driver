@@ -20,6 +20,9 @@ qualquer outro lugar do universo -> UART.data.rxreg -> rxqueue
 Se for a opção 1, eu vou usar o getc pra pegar da rxqueue, logo, vou usar depois que a transmissão acabou. Então basicamente uso só no programa em C.
 Se for a opção 2, eu vou usar o getc pra coordenar a transmissão. Ou seja, eu uso c = getc e o c que eu pegar eu passo pro endereço de recepção da UART.
 
+--- Resposta 1:
+    O mais provável é que realmente seja a opção 1. E, pelo que o professor passou em sala, eu retiro da fila, na posição head.
+
 ----- DÚVIDA 2:
 
 Sobre a declaração da estrutura do driver.
@@ -27,17 +30,17 @@ Sobre a declaração da estrutura do driver.
 -- Declaração 1:
 
 typedef struct UARTdriver {
-Tcontrol ctl ; // last control word written to device
-Tstatus stat ; // last status word read from device
-int nrx ; // number of characters in rx_queue
-int rx_hd ; // reception queue head index
-int rx_tl ; // reception queue tail index
-int ntx ; // number of spaces in tx_queye
-int tx_hd ; // transmission queue head index
-int tx_tl ; // transmission queue tail index
-char rx_q [16]; // reception queue
-char tx_q [16]; // transmission queue
-int regs [8]; // register save area
+    Tcontrol ctl ; // last control word written to device
+    Tstatus stat ; // last status word read from device
+    int nrx ; // number of characters in rx_queue
+    int rx_hd ; // reception queue head index
+    int rx_tl ; // reception queue tail index
+    int ntx ; // number of spaces in tx_queye
+    int tx_hd ; // transmission queue head index
+    int tx_tl ; // transmission queue tail index
+    char rx_q [16]; // reception queue
+    char tx_q [16]; // transmission queue
+    int regs [8]; // register save area
 } UARTdriver ;
 
 UARTdriver Ud ;
@@ -45,33 +48,33 @@ UARTdriver Ud ;
 -- Declaração 2:
 
 typedef struct control { // control register fields ( ls byte )
-int ign : 24 , // ignore 3 MS bytes
-ign567 : 3 , // ignore bits 5..7
-intTX : 1 , // interrupt on TX buffer empty ( bit 4)
-intRX : 1 , // interrupt on RX buffer full ( bit 3)
-speed : 3; // 4 ,8 ,..256 tx - rx data rates ( b0 .. b2 )
+    int ign : 24 , // ignore 3 MS bytes
+    ign567 : 3 , // ignore bits 5..7
+    intTX : 1 , // interrupt on TX buffer empty ( bit 4)
+    intRX : 1 , // interrupt on RX buffer full ( bit 3)
+    speed : 3; // 4 ,8 ,..256 tx - rx data rates ( b0 .. b2 )
 } Tcontrol ;
 
 typedef struct status { // status register fields ( only ls byte )
-int s ;
+    int s ;
 } Tstatus ;
 
 # define RXfull 0 x00000020
 # define TXempty 0 x00000040
 
 typedef union ctlStat { // control + status on same address
-Tcontrol ctl ; // write - only
-Tstatus stat ; // read - only
+    Tcontrol ctl ; // write - only
+    Tstatus stat ; // read - only
 } TctlStat ;
 
 typedef union data { // data registers on same address
-int tx ; // write - only
-int rx ; // read - only
+    int tx ; // write - only
+    int rx ; // read - only
 } Tdata ;
 
 typedef struct serial {
-TctlStat cs ; // control & status at address UART + 0
-Tdata d ; // TX & RX registers at address UART + 4
+    TctlStat cs ; // control & status at address UART + 0
+    Tdata d ; // TX & RX registers at address UART + 4
 } Tserial ;
 
 -- Declaração 3:
@@ -107,6 +110,8 @@ intTX fica 1 quando quero transmitir um char, ou seja, uART.data.txReg tá cheio
 
 ----- DÚVIDA 5:
 Temos que tratar overrun e framing?
+Se sim, pro overrun, o sinal fica ativo quando eu substituí o bit pelo próximo e já perdi? Ou eu percebo isso antes de fazer a cagada?
+Se eu escrevi por cima do outro, como eu posso resolver isso? Pegar valor anterior da string? Isso parece uma solução bem errada. Maybe recomeçar a transmissão.
 
 ----- DÚVIDA 6:
 Como funciona o esquema de ler Status e já zerar overrun, framing, intTx e intRx?

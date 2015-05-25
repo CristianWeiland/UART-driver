@@ -2,6 +2,8 @@
 #include "cmips.h"
 #include "cMIPSio.c" // Funções básicas (printf scanf etc.)
 
+// LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, mas é assim.
+
 typedef struct {
     int nrx;
     int rxhead;
@@ -91,9 +93,9 @@ void putc(char c) {
         }
         U.txqueue[U.txtail] = c;
         U.txtail = (U.txtail + 1) % 16;
-        uart.cs.stat = disableInterr();
+        status = disableInterr();
         U.ntx = U.ntx - 1;
-        uart.cs.stat = enableInterr();
+        status = enableInterr();
 	x = 1;
     }
     else {
