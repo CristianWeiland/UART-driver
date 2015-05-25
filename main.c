@@ -87,7 +87,7 @@ char getc() {
 void putc(char c) {
     int x,status;
     if(U.ntx > 0) {
-        if(U.ntx == 16 && uart->cs.ctl.intTx == 0) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
+        if(U.ntx == 16 && uart->cs.ctl.intTx == 1) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
             wrtc(c);
             return ;
         }

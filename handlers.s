@@ -84,7 +84,7 @@ extCounter:
 	# interrupt handler for UART attached to IP3=HW1
 
 	.bss 
-        .align  2
+    .align  2
 	.global rx_queue,rx_hd,rx_tl   # reception queue and pointers
 	.comm   rx_queue 16
 	.comm   rx_hd 4
@@ -96,7 +96,7 @@ extCounter:
 	.global nrx,ntx
 	.comm   nrx 4                  # characters in RX_queue
 	.comm   ntx 4                  # spaces left in TX_queue
-        .comm   _uart_buff 16*4        # registers to be saved here
+    .comm   _uart_buff 16*4        # registers to be saved here
 
 	.set UART_rx_irq,0x08
 	.set UART_tx_irq,0x10
@@ -116,19 +116,19 @@ UARTinterr:
 	lui   $k0, %hi(_uart_buff)
 	ori   $k0, $k0, %lo(_uart_buff)
 	sw    $k1, 0($k0)           #  and save UART status to memory
-	
+
 	sw    $a0, 12($k0)	    # save registers $a0,$a1, others?
 	sw    $a1, 16($k0)
 
 	#----------------------------------
 	# while you are developing the complete handler,
-	#    uncomment the line below and comment out lines up to UARTret
-	# .include "../tests/handlerUART.s"
+	# uncomment the line below and comment out lines up to UARTret
+	.include "../tests/handlerUART.s"
 	#----------------------------------
-	
+
 	andi  $a0, $k1, UART_rx_irq # Is this reception?
 	beq   $a0, $zero, UARTret   #   no, ignore it and return
-	
+
 	lui   $a0, %hi(HW_uart_addr)
 	ori   $a0, $a0, %lo(HW_uart_addr)
 	lw    $a1, 4($a0) 	    # Read data
@@ -136,7 +136,7 @@ UARTinterr:
 	sw    $a1, 4($k0)           #   and return from interrupt
 	addiu $a1, $zero, 1
 	sw    $a1, 8($k0)           # Signal new arrival 
-		
+	
 UARTret:
 	lw    $a1, 16($k0)          # restore registers $a0,$a1, others?
 	lw    $a0, 12($k0)
