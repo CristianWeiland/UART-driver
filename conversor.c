@@ -1,11 +1,11 @@
 #include <stdio.h>
 
 char inttochar(int i) {
-    return (char)i+48;
+    return (char)i;
 }
 
 int chartoint(char c) {
-    return (int)c-48;
+    return (int)c;
 }
 
 int main() {
