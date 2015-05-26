@@ -96,7 +96,7 @@ extCounter:
 	.global nrx,ntx
 	.comm   nrx 4                  # characters in RX_queue
 	.comm   ntx 4                  # spaces left in TX_queue
-    .comm   _uart_buff 16*4        # registers to be saved here
+	.extern Ud #UART data structure ########### L
 
 	.set UART_rx_irq,0x08
 	.set UART_tx_irq,0x10
@@ -106,28 +106,50 @@ extCounter:
 	.global UARTinterr
 	.ent    UARTinterr
 
-	# _uart_buff[0]=status, [1]=data_inp, [2]=new, [3]=$a0, [4]=$a1
+	#Ud[0] = ctl; [1] = stat;
+	#[2] = nrx; [3] = rxhead; [4] = rxtail; [5] = rxqueue;
+	#(mais pra frente acredito que fique):
+	#[9] = ntx; [10] = txhead; [11] = txtail; [12] = txqueue
+	#[16] = a0; [17] = a1 
 	
 UARTinterr:
-	lui   $k0, %hi(HW_uart_addr)
-	ori   $k0, $k0, %lo(HW_uart_addr)
-	lw    $k1, 0($k0) 	    # Read status, remove interrupt request
+	lui   $k1, %hi(HW_uart_addr)
+	ori   $k1, $k1, %lo(HW_uart_addr) #k1 = endereço uart
+	lw    $k0, 0($k1) # ler status -- conferir
+	#cris estou me batendo muito com essa historia de buffer	
+	#se tu for no handlers.s original, tu vi ver que tem um buffer, mas o nosso é dentro da uart ja ne??
+	
+	lui $k0, %hi(Ud)
+	ori $k0, k0, %lo(Ud) # k0 = endereco Ud (uart data str?)
+	sw $k1, 4(k0)
+	sw $a0, 16*4(k0)
+	sw $a1, 17*4(k0) #salvando a0 e a1
 
-	lui   $k0, %hi(_uart_buff)
-	ori   $k0, $k0, %lo(_uart_buff)
-	sw    $k1, 0($k0)           #  and save UART status to memory
+	.include "../tests/handlerUART.s" #lana del rey cura gay
 
-	sw    $a0, 12($k0)	    # save registers $a0,$a1, others?
-	sw    $a1, 16($k0)
+	andi $a0, $k1, UART_rx_irq # é recepção?
+	beq $a0, $zero, UARTret # se nao, xau
+	
+	lw $a0, 2*4(k0)
+	slti $a1, $a0, 16 #confere se nrx < 16
+	bne $a1, $zero, overrun #quando n tem espaço xau
+	nop
 
-	#----------------------------------
-	# while you are developing the complete handler,
-	# uncomment the line below and comment out lines up to UARTret
-	.include "../tests/handlerUART.s"
-	#----------------------------------
+	addiu $a0, $a0, 1 
+	sw $a0, 2*4(k0) #incrementa e salva nrx
+	
+	lw $a0, 9*4(k0) #ntx
+	nop
+	addiu $a0, $a0, -1 #decrementa tail
+	andi $a0, $a0, 0xf #modulo 16?? - conferir
+	sw $a0, 9*4(k0) #salva
+	##
+	lw $a1, 4(k1) #ler data do uart rxreg
+	addu $a0, $a0, $k0 #adicionar tail index to &(Ud)
+	sb $a1, 8*4(a0) #coloca no rabo gg
+	j UARTret
+	nop	 
 
-	andi  $a0, $k1, UART_rx_irq # Is this reception?
-	beq   $a0, $zero, UARTret   #   no, ignore it and return
 
 	lui   $a0, %hi(HW_uart_addr)
 	ori   $a0, $a0, %lo(HW_uart_addr)
@@ -147,6 +169,9 @@ UARTret:
 	and   $k0, $k1, $k0	    #   -7 = 0xffff.fff9 = user mode
 	mtc0  $k0, cop0_STATUS	
 	eret			    # Return from interrupt
+
+overrun: #faz o syscall de erro
+	
 	.end UARTinterr
 	#----------------------------------------------------------------
 

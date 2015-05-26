@@ -2,9 +2,12 @@
 #include "cmips.h"
 #include "cMIPSio.c" // Funções básicas (printf scanf etc.)
 
-// LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, mas é assim.
-
+// LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, m
+  
 typedef struct {
+    Tcontrol crl;
+    Tstatus stat;
+    
     int nrx;
     int rxhead;
     int rxtail;
@@ -14,6 +17,8 @@ typedef struct {
     int txhead;
     int txtail;
     char txqueue[16];
+
+    int regs[8];
 } Utype;
 
 typedef struct control {
