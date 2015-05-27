@@ -125,31 +125,41 @@ UARTinterr:
 	sw $a0, 16*4(k0)
 	sw $a1, 17*4(k0) #salvando a0 e a1
 
-	.include "../tests/handlerUART.s" #lana del rey cura gay
+	.include "../tests/handlerUART.s"
 
 	andi $a0, $k1, UART_rx_irq # é recepção?
 	beq $a0, $zero, UARTret # se nao, xau
 	
-	lw $a0, 2*4(k0)
-	slti $a1, $a0, 16 #confere se nrx < 16
-	bne $a1, $zero, overrun #quando n tem espaço xau
+	lw $a0, 2*4(k0) # carrega nrx
+	slti $a1, $a0, 16 # confere se nrx < 16
+	bne $a1, $zero, overrun # quando n tem espaço xau
 	nop
 
-	addiu $a0, $a0, 1 
-	sw $a0, 2*4(k0) #incrementa e salva nrx
+	addiu $a0, $a0, 1 # incrementa nrx
+	sw $a0, 2*4(k0) # salva nrx
 	
-	lw $a0, 9*4(k0) #ntx
+	lw $a0, 9*4(k0) # carrega ntx
 	nop
-	addiu $a0, $a0, -1 #decrementa tail
-	andi $a0, $a0, 0xf #modulo 16?? - conferir
-	sw $a0, 9*4(k0) #salva
+	addiu $a0, $a0, -1 # decrementa tail
+	andi $a0, $a0, 0xf # modulo 16?? - conferir
+	sw $a0, 9*4(k0) # salva ntx
 	##
-	lw $a1, 4(k1) #ler data do uart rxreg
-	addu $a0, $a0, $k0 #adicionar tail index to &(Ud)
-	sb $a1, 8*4(a0) #coloca no rabo gg
+	lw $a1, 4(k1) # ler data do uart rxreg
+	addu $a0, $a0, $k0 # adicionar tail index to &(Ud)
+	sb $a1, 8*4(a0) # coloca no rabo gg
 	j UARTret
 	nop	 
 
+    # is this transmission?
+    # if not, leave
+
+    # load ntx
+    # checks if ntx < 16 (theres something in there)
+    # if there isnt, do nothing. Leave.
+
+    # copy txqueue[txhead] to tx buffer.
+    # decrement ntx.
+    # update txhead and txtail.
 
 	lui   $a0, %hi(HW_uart_addr)
 	ori   $a0, $a0, %lo(HW_uart_addr)
