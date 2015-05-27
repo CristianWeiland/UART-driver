@@ -1,3 +1,29 @@
+Dicas do Roberto:
+
+HW          REG_DESL
+
+HANDLER     BUFFER
+
+MAIN        TXQUEUE
+
+hw envia bit por bit.
+
+handler cuida da parte txqueue -> buffer (a partir do interrHandler)
+
+main cuida da parte lugarmagico -> txqueue (a partir do putc)
+
+TRETAS:
+Buffer esvaziou -> gera interrupção.
+Gerou interrupção -> handler.s puxa algo da fila.
+    if(fila_nao_vazia(txqueue))
+        buffer = puxa_da_fila(txqueue);
+    else
+        exit;
+Ou seja, o handler PARA de fazer quando nao tem nd na fila.
+E dai, o que acontece?
+Vc espera o Main inserir direto na buffer. Assim que voce inserir na buffer, o HARDWARE, SOZINHO, vai enviar isso. E dai gera interrupçao.
+Quando gerou a interrupção o handler volta à ativa.
+
 ----- DÚVIDA 1:
 
 Quando eu uso o getc()?
