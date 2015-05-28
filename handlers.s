@@ -24,8 +24,8 @@
 	.align  2
 	.global _counter_val             # accumulate number of interrupts
 	.comm   _counter_val 4
-	.comm   _counter_saves 8*4       # area to save up to 8 registers
-	# _counter_saves[0]=$a0, [1]=$a1, [2]=$a2, ...
+	.comm   _counter_buffer 8*4       # area to save up to 8 registers
+	# _counter_buffer[0]=$a0, [1]=$a1, [2]=$a2, ...
 	
 	.set HW_counter_value,0xc00000c8 # Count 200 clock pulses & interr
 
@@ -41,11 +41,16 @@ extCounter:
 
 	#----------------------------------
 	# save additional registers
-	# la $k1, _counter_saves
+	# la $k1, _counter_buffer
 	# sw $a0, 0*4($k1)
 	# sw $a1, 1*4($k1)
 	#----------------------------------
 	
+     # save additional registers
+     lui   $k1, %hi(_counter_buffer)
+     ori   $k1, $k1, %lo(_counter_buffer)
+     sw    $jr, 0*4($k1)
+
 	lui   $k1, %hi(HW_counter_value)
 	ori   $k1, $k1, %lo(HW_counter_value)
 	sw    $k1, 0($k0)	      # Reload counter so it starts again
@@ -65,11 +70,16 @@ extCounter:
 
 	#----------------------------------
 	# and then restore same registers
-	# la $k1, _counter_saves
+	# la $k1, _counter_buffer
 	# lw $a0, 0*4($k1)
 	# lw $a1, 1*4($k1)
 	#----------------------------------
-	
+
+     # restore same registers
+     lui   $k1, %hi(_counter_buffer)
+     ori   $k1, $k1, %lo(_counter_buffer)
+     lw    $jr, 0*4($k1)
+
 	mfc0  $k0, cop0_STATUS	    # Read STATUS register
 	ori   $k0, $k0, M_StatusIEn #   but do not modify its contents
 	addiu $k1, $zero, -7        #   except for re-enabling interrupts
@@ -78,12 +88,8 @@ extCounter:
 	eret			    # Return from interrupt
 	.end extCounter
 	#----------------------------------------------------------------
-
-	
-	#----------------------------------------------------------------
 	# interrupt handler for UART attached to IP3=HW1
-
-	.bss 
+	.bss
     .align  2
 	.global rx_queue,rx_hd,rx_tl   # reception queue and pointers
 	.comm   rx_queue 16
@@ -96,7 +102,7 @@ extCounter:
 	.global nrx,ntx
 	.comm   nrx 4                  # characters in RX_queue
 	.comm   ntx 4                  # spaces left in TX_queue
-	.extern Ud #UART data structure ########### L
+    .comm   _uart_buff 16*4        # save space to save registers
 
 	.set UART_rx_irq,0x08
 	.set UART_tx_irq,0x10
@@ -106,72 +112,80 @@ extCounter:
 	.global UARTinterr
 	.ent    UARTinterr
 
-	#Ud[0] = ctl; [1] = stat;
-	#[2] = nrx; [3] = rxhead; [4] = rxtail; [5] = rxqueue;
-	#(mais pra frente acredito que fique):
-	#[9] = ntx; [10] = txhead; [11] = txtail; [12] = txqueue
-	#[16] = a0; [17] = a1 
+    # _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=data_inp, [3]=new,
+    #           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3
 	
 UARTinterr:
 	lui   $k1, %hi(HW_uart_addr)
-	ori   $k1, $k1, %lo(HW_uart_addr) #k1 = endereço uart
-	lw    $k0, 0($k1) # ler status -- conferir
-	#cris estou me batendo muito com essa historia de buffer	
-	#se tu for no handlers.s original, tu vi ver que tem um buffer, mas o nosso é dentro da uart ja ne??
+	ori   $k1, $k1, %lo(HW_uart_addr)   #k1 = endereço uart
+	lw    $k0, 0($k1)                   # Read status, remove interrupt request - CONFERIR ENDERECO
 	
-	lui $k0, %hi(Ud)
-	ori $k0, k0, %lo(Ud) # k0 = endereco Ud (uart data str?)
-	sw $k1, 4(k0)
-	sw $a0, 16*4(k0)
-	sw $a1, 17*4(k0) #salvando a0 e a1
+	lui   $k0, %hi(_uart_buff)
+	ori   $k0, k0, %lo(_uart_buff)      # and save UART status to memory
+	sw    $k1, 0($k0)                   # CONFERIR ENDERECO
+
+	sw    $a0, 4*4(k0)                  # save some registers - CONFERIR ENDERECO
+	sw    $a1, 5*4(k0)                  # CONFERIR ENDERECO
 
 	.include "../tests/handlerUART.s"
 
-	andi $a0, $k1, UART_rx_irq # é recepção?
-	beq $a0, $zero, UARTret # se nao, xau
+ RX_Interr:
+	 andi  $a0, $k1, UART_rx_irq     # is this reception?
+	 beq   $a0, $zero, TX_Interr     # if not, go to TX_interr
+
+     lui   $k0, %hi(HW_uart_addr)    # carrega endereco da uart
+     ori   $k0, $k0, %lo(HW_uart_addr)
+
+     lw    $a0, 12*4($k0)            # carrega nrx (rxqueue + rxhead + rxtail + txqueue + txhead + tail + Utype) = (16+4+4+16+4+4+HW_uart_addr) - CONFERIR ENDERECO
+     slti  $a1, $a0, 16              # confere se nrx < 16
+     bne   $a1, $zero, overrun       # quando n tem espaço deu overrun, pula pra lah
+     nop
+
+     addiu $a0, $a0, 1               # incrementa nrx
+     sw    $a0, 2*4($k0)             # salva nrx - CONFERIR ENDERECO
 	
-	lw $a0, 2*4(k0) # carrega nrx
-	slti $a1, $a0, 16 # confere se nrx < 16
-	bne $a1, $zero, overrun # quando n tem espaço xau
-	nop
+	 lw    $a0, 9*4($k0)             # carrega rxtail - CONFERIR ENDERECO
+ 	 nop
+	 addiu $a0, $a0, 1               # incrementa rxtail # notas de aula tah -1, porque seria -1? GG - CONFERIR SE INCREMENTA OU DECREMENTA
+	 andi  $a0, $a0, 0xf             # modulo 16
+	 sw    $a0, 9*4($k0)             # salva rxtail - CONFERIR ENDERECO
 
-	addiu $a0, $a0, 1 # incrementa nrx
-	sw $a0, 2*4(k0) # salva nrx
-	
-	lw $a0, 9*4(k0) # carrega ntx
-	nop
-	addiu $a0, $a0, -1 # decrementa tail
-	andi $a0, $a0, 0xf # modulo 16?? - conferir
-	sw $a0, 9*4(k0) # salva ntx
-	##
-	lw $a1, 4(k1) # ler data do uart rxreg
-	addu $a0, $a0, $k0 # adicionar tail index to &(Ud)
-	sb $a1, 8*4(a0) # coloca no rabo gg
-	j UARTret
-	nop	 
+     lw    $a1, 4($k1)               # ler data do uart rxreg - CONFERIR ENDERECO
+     addu  $a0, $a0, $k0             # adicionar tail index to &(Ud)
+     sb    $a1, 8*4($a0)             # coloca na posicao rxtail - CONFERIR ENDERECO
+     #j UARTret  # Comment - i have to check if theres transmission.
+     #nop
 
-    # is this transmission?
-    # if not, leave
+ TX_Interr:
+     lui   $k1, %hi(HW_uart_addr)
+     ori   $k1, $k1, %lo(HW_uart_addr)
 
-    # load ntx
-    # checks if ntx < 16 (theres something in there)
-    # if there isnt, do nothing. Leave.
+     andi  $a0, $k1, UART_tx_irq     # is this transmission?
+     bne   $a0, $zero, UARTret       # if not, leave
 
-    # copy txqueue[txhead] to tx buffer.
-    # decrement ntx.
-    # update txhead and txtail.
+     lw    $a0,POSICAO($k1)          # load ntx - CONFERIR ENDERECO
+     slti  $a1, $a0, 16              # checks if ntx < 16 (theres something in there)
+     bne   $a1, $zero, UARTret       # if there isnt ((ntx < 16) != 0), do nothing. Leave.
+     nop
 
-	lui   $a0, %hi(HW_uart_addr)
-	ori   $a0, $a0, %lo(HW_uart_addr)
-	lw    $a1, 4($a0) 	    # Read data
-	nop                         #   and store it to UART's buffer
-	sw    $a1, 4($k0)           #   and return from interrupt
-	addiu $a1, $zero, 1
-	sw    $a1, 8($k0)           # Signal new arrival 
-	
+     addi  $a0, $a0, 1               # incrementa ntx (retirou um elemento) - CONFERIR SE INCREMENTA OU DECREMENTA
+
+     lw    $k0, posicao_tx_head($k1) # pega txhead - CONFERIR ENDERECO
+     addu  $a0, $k0, $k1             # calcula posicao do elemento (txqueue[txhead])
+
+     lb    $a1, 0($a0)               # copy txqueue[txhead] to tx buffer.
+     addi  $k0, $k0, 1               # update txhead
+     sw    $k0, posicao_tx_head($k1) # salva txhead - CONFERIR ENDERECO
+
+     # precisa dar lui e ori no $algumacoisa???
+
+     sb    $a1, ($algumacoisa)       # salva o dado na buffer de transmissao da uart - CONFERIR ENDERECO
+
 UARTret:
-	lw    $a1, 16($k0)          # restore registers $a0,$a1, others?
-	lw    $a0, 12($k0)
+	lui   $k0, %hi(_uart_buff)
+	ori   $k0, k0, %lo(_uart_buff)      # and save UART status to memory
+	lw    $a0, 4*4($k0)          # restore registers $a0,$a1, others?
+	lw    $a1, 4*5($k0)
 
 	mfc0  $k0, cop0_STATUS	    # Read STATUS register
 	ori   $k0, $k0, M_StatusIEn #   but do not modify its contents
@@ -180,7 +194,7 @@ UARTret:
 	mtc0  $k0, cop0_STATUS	
 	eret			    # Return from interrupt
 
-overrun: #faz o syscall de erro
+ overrun: #faz o syscall de erro
 	
 	.end UARTinterr
 	#----------------------------------------------------------------

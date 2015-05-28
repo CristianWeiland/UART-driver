@@ -17,8 +17,6 @@ typedef struct {
     int txhead;
     int txtail;
     char txqueue[16];
-
-    int regs[8];
 } Utype;
 
 typedef struct control {
