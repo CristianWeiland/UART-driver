@@ -1,0 +1,91 @@
+sor, 
+
+Ficamos com algumas dúvidas quanto as declarações e como acessar os endereços, especialmente no arquivo em assembly (handlers.s).
+
+Segue as declarações no handlers.s:
+
+ 92     .bss
+ 93     .align  2
+ 94     .global rx_queue,rx_hd,rx_tl   # reception queue and pointers
+ 95     .comm   rx_queue 16
+ 96     .comm   rx_hd 4
+ 97     .comm   rx_tl 4
+ 98     .global tx_queue,tx_hd,tx_tl   # transmission queue and pointers
+ 99     .comm   tx_queue 16
+100     .comm   tx_hd 4
+101     .comm   tx_tl 4
+102     .global nrx,ntx
+103     .comm   nrx 4                  # characters in RX_queue
+104     .comm   ntx 4                  # spaces left in TX_queue
+105     .comm   _uart_buff 16*4        # save space to save registers
+106 
+107     .set UART_rx_irq,0x08
+108     .set UART_tx_irq,0x10
+109 
+110     .text
+111     .set    noreorder
+112     .global UARTinterr
+113     .ent    UARTinterr
+114 
+115     # _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=data_inp, [3]=new,
+116     #           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3
+
+
+
+
+... e as declarações no main.c:
+
+
+ 10 typedef struct {
+ 11     int nrx;
+ 12     int rxhead;
+ 13     int rxtail;
+ 14     char rxqueue[16];
+ 15 
+ 16     int ntx;
+ 17     int txhead;
+ 18     int txtail;
+ 19     char txqueue[16];
+ 20 } Utype;
+ 21 
+ 22 typedef struct control {
+ 23     int ign : 24,
+ 24         ign567 : 3,
+ 25         intTX : 1,
+ 26         intRX : 1,
+ 27         speed : 3;
+ 28 } Tcontrol;
+ 29 
+ 30 typedef struct status {
+ 31     int s;
+ 32 } Tstatus;
+ 33 
+ 34 #define RXfull 0x00000020 
+ 35 #define TXempty 0x00000040
+ 36 
+ 37 typedef union ctlStat {
+ 38     Tcontrol ctl;
+ 39     Tstatus  stat;
+ 40 } TctlStat; 
+ 41 
+ 42 typedef union data { 
+ 43     int tx; 
+ 44     int rx;
+ 45 } Tdata;  46 
+ 47 typedef struct serial {
+ 48     TctlStat cs;
+ 49     Tdata d;
+ 50 } Tserial;
+ 51 
+ 52 extern Utype U;
+ 53 volatile Tserial *uart = (void *)IO_UART_BOT_ADDR;
+
+
+
+Nossas dúvidas são:
+1- Como acessamos as variáveis no assembly? Por exemplo: poderíamos executar lui $k0,%hi(rx_queue) e ori $k0,$k0,%lo(rx_queue). Seria essa a melhor forma/forma correta de fazer isso?
+   Além disso, as próximas variáveis são declaradas sequencialmente?
+
+
+
+
