@@ -1,3 +1,8 @@
+OBSERVACOES:
+Quanto a declaracao no assembly:
+Tem duas declaracoes de estruturas UType. Escolher uma, deletar a outra.
+Tah colocando UType como extern. No C tambem. Acho que em assembly declara, e no C pega externo.
+
 Dicas do Roberto:
 
 HW          REG_DESL

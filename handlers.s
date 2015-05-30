@@ -89,43 +89,44 @@ extCounter:
 	.end extCounter
 	#----------------------------------------------------------------
 	# interrupt handler for UART attached to IP3=HW1
-	.bss
+    .bss
     .align  2
-	.global rx_queue,rx_hd,rx_tl   # reception queue and pointers
-	.comm   rx_queue 16
-	.comm   rx_hd 4
-	.comm   rx_tl 4
-	.global tx_queue,tx_hd,tx_tl   # transmission queue and pointers
-	.comm   tx_queue 16
-	.comm   tx_hd 4
-	.comm   tx_tl 4
-	.global nrx,ntx
-	.comm   nrx 4                  # characters in RX_queue
-	.comm   ntx 4                  # spaces left in TX_queue
+    .global Ud
+Ud: .global rx_queue,rx_hd,rx_tl   # reception queue and pointers
+    .comm   rx_queue 16
+    .comm   rx_hd 4
+    .comm   rx_tl 4
+    .global tx_queue,tx_hd,tx_tl   # transmission queue and pointers
+    .comm   tx_queue 16
+    .comm   tx_hd 4
+    .comm   tx_tl 4
+    .global nrx,ntx
+    .comm   nrx 4                  # characters in RX_queue
+    .comm   ntx 4                  # spaces left in TX_queue
     .comm   _uart_buff 16*4        # save space to save registers
 
-	.set UART_rx_irq,0x08
-	.set UART_tx_irq,0x10
+    .set UART_rx_irq,0x08
+    .set UART_tx_irq,0x10
 
-	.text
-	.set    noreorder
-	.global UARTinterr
-	.ent    UARTinterr
+    .text
+    .set    noreorder
+    .global UARTinterr
+    .ent    UARTinterr
 
     # _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=data_inp, [3]=new,
     #           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3
 	
 UARTinterr:
-	lui   $k1, %hi(HW_uart_addr)
-	ori   $k1, $k1, %lo(HW_uart_addr)   #k1 = endereço uart
-	lw    $k0, 0($k1)                   # Read status, remove interrupt request - CONFERIR ENDERECO
+    lui   $k1, %hi(HW_uart_addr)
+    ori   $k1, $k1, %lo(HW_uart_addr)   #k1 = endereço uart
+    lw    $k0, 0($k1)                   # Read status, remove interrupt request - CONFERIR ENDERECO
 	
-	lui   $k0, %hi(_uart_buff)
-	ori   $k0, k0, %lo(_uart_buff)      # and save UART status to memory
-	sw    $k1, 0($k0)                   # CONFERIR ENDERECO
+    lui   $k0, %hi(_uart_buff)
+    ori   $k0, k0, %lo(_uart_buff)      # and save UART status to memory
+    sw    $k1, 0($k0)                   # CONFERIR ENDERECO
 
-	sw    $a0, 4*4(k0)                  # save some registers - CONFERIR ENDERECO
-	sw    $a1, 5*4(k0)                  # CONFERIR ENDERECO
+    sw    $a0, 4*4(k0)                  # save some registers - CONFERIR ENDERECO
+    sw    $a1, 5*4(k0)                  # CONFERIR ENDERECO
 
 	.include "../tests/handlerUART.s"
 
@@ -182,19 +183,20 @@ UARTinterr:
      sb    $a1, ($algumacoisa)       # salva o dado na buffer de transmissao da uart - CONFERIR ENDERECO
 
 UARTret:
-	lui   $k0, %hi(_uart_buff)
-	ori   $k0, k0, %lo(_uart_buff)      # and save UART status to memory
-	lw    $a0, 4*4($k0)          # restore registers $a0,$a1, others?
-	lw    $a1, 4*5($k0)
+    lui   $k0, %hi(_uart_buff)
+    ori   $k0, k0, %lo(_uart_buff)      # and save UART status to memory
+    lw    $a0, 4*4($k0)          # restore registers $a0,$a1, others?
+    lw    $a1, 4*5($k0)
 
-	mfc0  $k0, cop0_STATUS	    # Read STATUS register
-	ori   $k0, $k0, M_StatusIEn #   but do not modify its contents
-	addiu $k1, $zero, -7        #   except for re-enabling interrupts
-	and   $k0, $k1, $k0	    #   -7 = 0xffff.fff9 = user mode
-	mtc0  $k0, cop0_STATUS	
-	eret			    # Return from interrupt
+    mfc0  $k0, cop0_STATUS	    # Read STATUS register
+    ori   $k0, $k0, M_StatusIEn #   but do not modify its contents
+    addiu $k1, $zero, -7        #   except for re-enabling interrupts
+    and   $k0, $k1, $k0	    #   -7 = 0xffff.fff9 = user mode
+    mtc0  $k0, cop0_STATUS	
+    eret			    # Return from interrupt
 
- overrun: #faz o syscall de erro
+overrun: #faz o syscall de erro
+    syscall
 	
 	.end UARTinterr
 	#----------------------------------------------------------------

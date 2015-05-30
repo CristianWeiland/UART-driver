@@ -5,19 +5,15 @@
 // LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, m
   
 typedef struct {
-    Tcontrol crl;
-    Tstatus stat;
-    
-    int nrx;
-    int rxhead;
-    int rxtail;
-    char rxqueue[16];
-
-    int ntx;
-    int txhead;
-    int txtail;
-    char txqueue[16];
-} Utype;
+    char    rx_q[16];
+    int     rx_hd;
+    int     rx_tl;
+    char    tx_q[16];
+    int     tx_hd;
+    int     tx_tl;
+    int     nrx;
+    int     ntx;
+} UARTdriver;
 
 typedef struct control {
     int ign : 24,
@@ -49,7 +45,7 @@ typedef struct serial {
     Tdata d;
 } Tserial;
 
-extern Utype U;
+extern UARTdriver Ud;
 
 int proberx() {
     return U.nrx;
@@ -60,6 +56,7 @@ int probetx() {
 }
 
 int iostat() {
+    // Pergunta valendo 1 milhao de reais: retorna status do processador (que zera quando vc le) ou da UART?
     return uart.cs.stat & 0x000000ff; // Pelo fato de ter que retornar no lsb(byte) talvez tem que deslocar em vez de fazer o and.
 }
 
@@ -67,6 +64,7 @@ void ioctl(int i) {
     i = i & 0x000000ff; // Soh pode escrever no byte menos significativo. Zera tudo.
     uart.cs.ctl = uart.cs.ctl & 0xffffff00;
     uart.cs.ctl = uart.cs.ctl | i;
+    printif("Eh pra dar erro. Tem que escrever no reg de ctrl do processador.");
     return ;
 }
 
@@ -76,8 +74,8 @@ char getc() {
     // Declaração
     if(U.nrx > 0) {
         status = disableInterr();
-        c = U.rxqueue[U.rxhead]; // O char que vou retornar pega um char da cabeça da fila de recepção.
-        U.rxhead = (U.rxhead + 1) % 16; // Incrementa a cabeça da fila de modo circular (usando mod tamanho da fila).
+        c = U.rx_q[U.rx_hd]; // O char que vou retornar pega um char da cabeça da fila de recepção.
+        U.rx_hd = (U.rx_hd + 1) % 16; // Incrementa a cabeça da fila de modo circular (usando mod tamanho da fila).
         U.nrx = U.nrx - 1;
         status = enableInterr();
     }
@@ -94,9 +92,9 @@ void putc(char c) {
             wrtc(c);
             return ;
         }
-        U.txqueue[U.txtail] = c;
-        U.txtail = (U.txtail + 1) % 16;
         status = disableInterr();
+        U.tx_q[U.tx_tl] = c;
+        U.tx_tl = (U.tx_tl + 1) % 16;
         U.ntx = U.ntx - 1;
         status = enableInterr();
 	    x = 1;
