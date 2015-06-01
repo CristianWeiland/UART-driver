@@ -92,15 +92,12 @@ extCounter:
     .bss
     .align  2
     .global Ud
-Ud: .global rx_queue,rx_hd,rx_tl   # reception queue and pointers
-    .comm   rx_queue 16
+Ud: .comm   rx_queue 16
     .comm   rx_hd 4
     .comm   rx_tl 4
-    .global tx_queue,tx_hd,tx_tl   # transmission queue and pointers
     .comm   tx_queue 16
     .comm   tx_hd 4
     .comm   tx_tl 4
-    .global nrx,ntx
     .comm   nrx 4                  # characters in RX_queue
     .comm   ntx 4                  # spaces left in TX_queue
     .comm   _uart_buff 16*4        # save space to save registers
@@ -134,8 +131,8 @@ UARTinterr:
 	 andi  $a0, $k1, UART_rx_irq     # is this reception?
 	 beq   $a0, $zero, TX_Interr     # if not, go to TX_interr
 
-     lui   $k0, %hi(HW_uart_addr)    # carrega endereco da uart
-     ori   $k0, $k0, %lo(HW_uart_addr)
+     lui   $k0, %hi(Ud)    # carrega endereco da uart
+     ori   $k0, $k0, %lo(Ud)
 
      lw    $a0, 12*4($k0)            # carrega nrx (rxqueue + rxhead + rxtail + txqueue + txhead + tail + Utype) = (16+4+4+16+4+4+HW_uart_addr) - CONFERIR ENDERECO
      slti  $a1, $a0, 16              # confere se nrx < 16

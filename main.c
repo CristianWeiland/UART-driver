@@ -5,14 +5,14 @@
 // LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, m
   
 typedef struct {
-    char    rx_q[16];
-    int     rx_hd;
-    int     rx_tl;
-    char    tx_q[16];
-    int     tx_hd;
-    int     tx_tl;
-    int     nrx;
-    int     ntx;
+    char    rx_q[16];   // Reception Queue
+    int     rx_hd;      // Reception Queue Head Index
+    int     rx_tl;      // Reception Queue Tail Index
+    char    tx_q[16];   // Transmission Queue
+    int     tx_hd;      // Transmission Queue Head Index
+    int     tx_tl;      // Transmission Queue Tail Index
+    int     nrx;        // Number of Characters in rx_q
+    int     ntx;        // Number of Spaces in tx_q
 } UARTdriver;
 
 typedef struct control {
