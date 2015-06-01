@@ -2,6 +2,8 @@
 #include "cmips.h"
 #include "cMIPSio.c" // Funções básicas (printf scanf etc.)
 
+#define NULL '\0' // Ou soh 0? Não sei.
+
 // LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, m
   
 typedef struct {
@@ -14,6 +16,14 @@ typedef struct {
     int     nrx;        // Number of Characters in rx_q
     int     ntx;        // Number of Spaces in tx_q
 } UARTdriver;
+
+extern UARTdriver Ud;
+
+typedef struct {
+    int buff[8];
+} RegBuffer
+
+extern RegBuffer _uart_buff;
 
 typedef struct control {
     int ign : 24,
@@ -45,8 +55,6 @@ typedef struct serial {
     Tdata d;
 } Tserial;
 
-extern UARTdriver Ud;
-
 int proberx() {
     return U.nrx;
 }
@@ -68,7 +76,7 @@ void ioctl(int i) {
     return ;
 }
 
-char getc() {
+char Getc() {
     char c;
     int status;
     // Declaração
@@ -85,7 +93,7 @@ char getc() {
     return c;
 }
 
-void putc(char c) {
+void Putc(char c) {
     int x,status;
     if(U.ntx > 0) {
         if(U.ntx == 16 && uart->cs.ctl.intTx == 1) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
@@ -126,7 +134,7 @@ int main() {
     ctrl.ign = 0;
     ctrl.intTX = 0;
     ctrl.intRX = 0;
-    ctrl.speed = 0;
+    ctrl.speed = 3; // Roberto comentou sobre usar 2 ou 3. Na dúvida, deixemos mais lento, soh por segurança.
 
     counter = (int *)IO_COUNT_BOT_ADDR;
     uart = (void *)IO_UART_BOT_ADDR;
@@ -139,13 +147,13 @@ int main() {
         i++;
         while( ! ( state = uart->cs.stat.s && TXempty )) {};
         //r[i] = char(uart->d.rx);
-        r[i] = getc();
+        r[i] = Getc();
         to_stdout( r[i] );
     } while( r[i] != '\n' );
 
     // Teste entrada e saida da UART.
-    /*while( (c = getc()) != '\0') {
-        putc(c);
+    /*while( (c = Getc()) != '\0') {
+        Putc(c);
         printf("%c",c);
     }*/
     print('\n');
