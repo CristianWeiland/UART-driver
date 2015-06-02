@@ -5,7 +5,7 @@
 #define NULL '\0' // Ou soh 0? Não sei.
 
 // LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, m
-  
+ 
 typedef struct {
     char    rx_q[16];   // Reception Queue
     int     rx_hd;      // Reception Queue Head Index
@@ -93,8 +93,8 @@ char Getc() {
     return c;
 }
 
-void Putc(char c) {
-    int x,status;
+int Putc(char c) {
+    int status;
     if(U.ntx > 0) {
         if(U.ntx == 16 && uart->cs.ctl.intTx == 1) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
             wrtc(c);
@@ -105,19 +105,16 @@ void Putc(char c) {
         U.tx_tl = (U.tx_tl + 1) % 16;
         U.ntx = U.ntx - 1;
         status = enableInterr();
-	    x = 1;
     }
     else {
-        x = 0;
+        c = -1;
     }
-    return ;
-    //return x; // Eu retorno algo sendo void? GG! Maybe fazer o x ser global pra poder retornar o erro.
+    return c;
 }
 
 
 int wrtc(char c) {
-    uart->d.tx = (int)c;
-    return uart.d.tx;
+    return uart->d.tx = (int)c;
 }
 
 

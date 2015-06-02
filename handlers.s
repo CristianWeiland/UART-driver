@@ -102,6 +102,8 @@ Ud: .comm   rx_queue 16
     .comm   ntx 4                  # spaces left in TX_queue
     .comm   _uart_buff 16*4        # save space to save registers
 
+    .extern uart
+
     .set UART_rx_irq,0x08
     .set UART_tx_irq,0x10
 
@@ -109,6 +111,9 @@ Ud: .comm   rx_queue 16
     .set    noreorder
     .global UARTinterr
     .ent    UARTinterr
+
+    # Ud[0-15]=rx_queue; Ud[16-19]=rx_hd; Ud[20-23]=rx_tl; Ud[24-39]=tx_queue;
+    # Ud[40-43]=tx_head; Ud[44-47]=tx_tl; Ud[48-51]=nrx; Ud[52-55]=ntx;
 
     # _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=data_inp, [3]=new,
     #           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3
@@ -140,20 +145,22 @@ UARTinterr:
      nop
 
      addiu $a0, $a0, 1               # incrementa nrx
-     sw    $a0, 2*4($k0)             # salva nrx - CONFERIR ENDERECO
+     sw    $a0, 12*4($k0)            # salva nrx - CONFERIR ENDERECO
 	
-	 lw    $a0, 9*4($k0)             # carrega rxtail - CONFERIR ENDERECO
+	 lw    $a0, 5*4($k0)             # carrega rxtail - CONFERIR ENDERECO
  	 nop
 	 addiu $a0, $a0, 1               # incrementa rxtail # notas de aula tah -1, porque seria -1? GG - CONFERIR SE INCREMENTA OU DECREMENTA
 	 andi  $a0, $a0, 0xf             # modulo 16
-	 sw    $a0, 9*4($k0)             # salva rxtail - CONFERIR ENDERECO
+	 sw    $a0, 5*4($k0)             # salva rxtail - CONFERIR ENDERECO
 
-     lw    $a1, 4($k1)               # ler data do uart rxreg - CONFERIR ENDERECO
+     lw    $a1, 4*1($k1)             # ler data do uart rxreg - CONFERIR ENDERECO
      addu  $a0, $a0, $k0             # adicionar tail index to &(Ud)
-     sb    $a1, 8*4($a0)             # coloca na posicao rxtail - CONFERIR ENDERECO
-     #j UARTret  # Comment - i have to check if theres transmission.
+     sb    $a1, 0($a0)             # coloca na posicao rxtail - CONFERIR ENDERECO
+     #j UARTret                      # Comment - i have to check if theres transmission.
      #nop
 
+    # Ud[0-15]=rx_queue; Ud[16-19]=rx_hd; Ud[20-23]=rx_tl; Ud[24-39]=tx_queue;
+    # Ud[40-43]=tx_head; Ud[44-47]=tx_tl; Ud[48-51]=nrx; Ud[52-55]=ntx;
  TX_Interr:
      lui   $k1, %hi(HW_uart_addr)
      ori   $k1, $k1, %lo(HW_uart_addr)
@@ -161,15 +168,18 @@ UARTinterr:
      andi  $a0, $k1, UART_tx_irq     # is this transmission?
      bne   $a0, $zero, UARTret       # if not, leave
 
-     lw    $a0,POSICAO($k1)          # load ntx - CONFERIR ENDERECO
+     lui   $k0, %hi(Ud)
+     ori   $k0, $k0, %lo(Ud)
+
+     lw    $a0, 13*4($k0)            # load ntx - CONFERIR ENDERECO
      slti  $a1, $a0, 16              # checks if ntx < 16 (theres something in there)
      bne   $a1, $zero, UARTret       # if there isnt ((ntx < 16) != 0), do nothing. Leave.
      nop
 
      addi  $a0, $a0, 1               # incrementa ntx (retirou um elemento) - CONFERIR SE INCREMENTA OU DECREMENTA
 
-     lw    $k0, posicao_tx_head($k1) # pega txhead - CONFERIR ENDERECO
-     addu  $a0, $k0, $k1             # calcula posicao do elemento (txqueue[txhead])
+     lw    $k1, 10*4($k0)            # pega txhead - CONFERIR ENDERECO
+     addu  $a0, $k1, $k0             # calcula posicao do elemento (txqueue[txhead])
 
      lb    $a1, 0($a0)               # copy txqueue[txhead] to tx buffer.
      addi  $k0, $k0, 1               # update txhead
@@ -188,13 +198,14 @@ UARTret:
     mfc0  $k0, cop0_STATUS	    # Read STATUS register
     ori   $k0, $k0, M_StatusIEn #   but do not modify its contents
     addiu $k1, $zero, -7        #   except for re-enabling interrupts
-    and   $k0, $k1, $k0	    #   -7 = 0xffff.fff9 = user mode
+    and   $k0, $k1, $k0	       #   -7 = 0xffff.fff9 = user mode
     mtc0  $k0, cop0_STATUS	
     eret			    # Return from interrupt
 
 overrun: #faz o syscall de erro
-    syscall
-	
+    
+    eret
+
 	.end UARTinterr
 	#----------------------------------------------------------------
 
