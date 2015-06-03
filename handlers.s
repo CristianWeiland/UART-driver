@@ -124,11 +124,11 @@ UARTinterr:
     lw    $k0, 0($k1)                   # Read status, remove interrupt request - CONFERIR ENDERECO
 	
     lui   $k0, %hi(_uart_buff)
-    ori   $k0, k0, %lo(_uart_buff)      # and save UART status to memory
+    ori   $k0, $k0, %lo(_uart_buff)      # and save UART status to memory
     sw    $k1, 0($k0)                   # CONFERIR ENDERECO
 
-    sw    $a0, 4*4(k0)                  # save some registers - CONFERIR ENDERECO
-    sw    $a1, 5*4(k0)                  # CONFERIR ENDERECO
+    sw    $a0, 4*4($k0)                  # save some registers - CONFERIR ENDERECO
+    sw    $a1, 5*4($k0)                  # CONFERIR ENDERECO
 
 	.include "../tests/handlerUART.s"
 
@@ -162,32 +162,33 @@ UARTinterr:
     # Ud[0-15]=rx_queue; Ud[16-19]=rx_hd; Ud[20-23]=rx_tl; Ud[24-39]=tx_queue;
     # Ud[40-43]=tx_head; Ud[44-47]=tx_tl; Ud[48-51]=nrx; Ud[52-55]=ntx;
  TX_Interr:
-     lui   $k1, %hi(HW_uart_addr)
-     ori   $k1, $k1, %lo(HW_uart_addr)
+     lui   $k1, %hi(_uart_buff)      # nao le do HW_uart_addr porque jah foi lido anteriormente e isso zera as interrupcoes.
+     ori   $k1, $k1, %lo(_uart_buff) # depois da primeira leitura salvamos na _uart_buff e agora vamos ler de lah.
+     lw    $k0, 0($k1)               # ler registrador de status 
 
-     andi  $a0, $k1, UART_tx_irq     # is this transmission?
+     andi  $a0, $k0, UART_tx_irq     # is this transmission?
      bne   $a0, $zero, UARTret       # if not, leave
 
      lui   $k0, %hi(Ud)
      ori   $k0, $k0, %lo(Ud)
 
-     lw    $a0, 13*4($k0)            # load ntx - CONFERIR ENDERECO
+     lw    $a0, 13*4($k0)            # load ntx - CONFERIR ENDERECO *
      slti  $a1, $a0, 16              # checks if ntx < 16 (theres something in there)
      bne   $a1, $zero, UARTret       # if there isnt ((ntx < 16) != 0), do nothing. Leave.
      nop
 
      addi  $a0, $a0, 1               # incrementa ntx (retirou um elemento) - CONFERIR SE INCREMENTA OU DECREMENTA
 
-     lw    $k1, 10*4($k0)            # pega txhead - CONFERIR ENDERECO
+     lw    $k1, 10*4($k0)            # pega txhead - CONFERIR ENDERECO *
      addu  $a0, $k1, $k0             # calcula posicao do elemento (txqueue[txhead])
 
-     lb    $a1, 0($a0)               # copy txqueue[txhead] to tx buffer.
+     lb    $a1, 6*4($a0)             # copy txqueue[txhead] to tx buffer. - CONFERIR ENDEREÇO *
      addi  $k0, $k0, 1               # update txhead
-     sw    $k0, posicao_tx_head($k1) # salva txhead - CONFERIR ENDERECO
+     sw    $k0, 10*4($k0) # salva txhead - CONFERIR ENDERECO *
 
-     # precisa dar lui e ori no $algumacoisa???
-
-     sb    $a1, ($algumacoisa)       # salva o dado na buffer de transmissao da uart - CONFERIR ENDERECO
+     lui   $k0, %hi(HW_uart_addr)
+     ori   $k0, $k0, %lo(HW_uart_addr)
+     sb    $a1, 4($k0)       # salva o dado na buffer de transmissao da uart - CONFERIR ENDERECO *
 
 UARTret:
     lui   $k0, %hi(_uart_buff)

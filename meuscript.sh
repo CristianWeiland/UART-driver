@@ -4,5 +4,6 @@
 
 $(cp ./main.c ~/cmips/cMIPS/tests)
 $(cp ./handlers.s ~/cmips/cMIPS/include)
+$(cp ./compilar.sh ~/cmips/cMIPS/tests)
 
 exit 0

@@ -1,11 +1,13 @@
 #include "handlers.s" // Enable e Disable interr.
-#include "cmips.h"
+//#include "cmips.h"
 #include "cMIPSio.c" // Funções básicas (printf scanf etc.)
 
 #define NULL '\0' // Ou soh 0? Não sei.
 
 // LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, m
  
+volatile Tserial *uart = (void *)IO_UART_BOT_ADDR;
+
 typedef struct {
     char    rx_q[16];   // Reception Queue
     int     rx_hd;      // Reception Queue Head Index
@@ -56,11 +58,11 @@ typedef struct serial {
 } Tserial;
 
 int proberx() {
-    return U.nrx;
+    return Ud.nrx;
 }
 
 int probetx() {
-    return U.ntx;
+    return Ud.ntx;
 }
 
 int iostat() {
@@ -80,11 +82,11 @@ char Getc() {
     char c;
     int status;
     // Declaração
-    if(U.nrx > 0) {
+    if(Ud.nrx > 0) {
         status = disableInterr();
-        c = U.rx_q[U.rx_hd]; // O char que vou retornar pega um char da cabeça da fila de recepção.
-        U.rx_hd = (U.rx_hd + 1) % 16; // Incrementa a cabeça da fila de modo circular (usando mod tamanho da fila).
-        U.nrx = U.nrx - 1;
+        c = Ud.rx_q[Ud.rx_hd]; // O char que vou retornar pega um char da cabeça da fila de recepção.
+        Ud.rx_hd = (Ud.rx_hd + 1) % 16; // Incrementa a cabeça da fila de modo circular (usando mod tamanho da fila).
+        Ud.nrx = Ud.nrx - 1;
         status = enableInterr();
     }
     else {
@@ -95,15 +97,15 @@ char Getc() {
 
 int Putc(char c) {
     int status;
-    if(U.ntx > 0) {
-        if(U.ntx == 16 && uart->cs.ctl.intTx == 1) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
-            wrtc(c);
+    if(Ud.ntx > 0) {
+        if(Ud.ntx == 16 && uart->cs.ctl.intTx == 1) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
+            //wrtc(c);
             return ;
         }
         status = disableInterr();
-        U.tx_q[U.tx_tl] = c;
-        U.tx_tl = (U.tx_tl + 1) % 16;
-        U.ntx = U.ntx - 1;
+        Ud.tx_q[Ud.tx_tl] = c;
+        Ud.tx_tl = (Ud.tx_tl + 1) % 16;
+        Ud.ntx = Ud.ntx - 1;
         status = enableInterr();
     }
     else {
@@ -112,13 +114,11 @@ int Putc(char c) {
     return c;
 }
 
-
+/*
 int wrtc(char c) {
     return uart->d.tx = (int)c;
 }
-
-
-volatile Tserial *uart = (void *)IO_UART_BOT_ADDR;
+*/
 
 int main() {
     int i;
