@@ -1,12 +1,10 @@
 #include "handlers.s" // Enable e Disable interr.
-//#include "cmips.h"
+#include "cMIPS.h"
 #include "cMIPSio.c" // Funções básicas (printf scanf etc.)
 
 #define NULL '\0' // Ou soh 0? Não sei.
 
 // LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, m
- 
-volatile Tserial *uart = (void *)IO_UART_BOT_ADDR;
 
 typedef struct {
     char    rx_q[16];   // Reception Queue
@@ -56,6 +54,8 @@ typedef struct serial {
     TctlStat cs;
     Tdata d;
 } Tserial;
+
+volatile Tserial *uart = (void *)IO_UART_BOT_ADDR;
 
 int proberx() {
     return Ud.nrx;
