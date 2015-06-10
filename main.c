@@ -1,6 +1,6 @@
-#include "handlers.s" // Enable e Disable interr.
-//#include "cMIPS.h"  // Comentado porque jah tah sendo incluido pelo cMIPSio.c
-#include "cMIPSio.c" // Funções básicas (printf scanf etc.)
+//#include "handlers.s" // Enable e Disable interr.
+#include "cMIPS.h"  // Comentado porque jah tah sendo incluido pelo cMIPSio.c
+//#include "cMIPSio.c" // Funções básicas (printf scanf etc.)
 
 #define NULL '\0' // Ou soh 0? Não sei.
 
@@ -57,7 +57,7 @@ typedef struct serial {
     Tdata d;
 } Tserial;
 
-volatile Tserial *uart;// = (void *)IO_UART_BOT_ADDR;
+volatile Tserial *uart = (void *)IO_UART_ADDR;
 
 int proberx() {
     return Ud.nrx;
@@ -76,7 +76,7 @@ void ioctl(int i) {
     i = i & 0x000000ff; // Soh pode escrever no byte menos significativo. Zera tudo.
     //uart->cs.ctl.AQUIII = uart->cs.ctl.AQUIII & 0xffffff00;
     //uart->cs.ctl.AQUIII = uart->cs.ctl.AQUIII | i;
-    printif("Eh pra dar erro. Tem que escrever no reg de ctrl do processador.");
+    //printif("Eh pra dar erro. Tem que escrever no reg de ctrl do processador.");
     return ;
 }
 
@@ -128,15 +128,22 @@ int main() {
     volatile int *counter;
     Tcontrol ctrl;
     volatile Tstatus status;
-    char c;
+    char c, s[]="umastringbacana";
+
+    state = disableInterr();
+    Ud.rx_hd = 0;
+    Ud.rx_tl = 0;
+    Ud.tx_hd = 0;
+    Ud.tx_tl = 0;
+    state = enableInterr();
 
     ctrl.ign = 0;
     ctrl.intTX = 0;
     ctrl.intRX = 0;
     ctrl.speed = 3; // Roberto comentou sobre usar 2 ou 3. Na dúvida, deixemos mais lento, soh por segurança.
 
-    //counter = (int *)IO_COUNT_BOT_ADDR; // Deu problema no endereco, por isso comentei. Verificar depois.
-    //uart = (void *)IO_UART_BOT_ADDR;    // Tambem deu problema. Tem que ver isso urgente.
+    counter = (int *)IO_COUNT_ADDR; // Deu problema no endereco, por isso comentei. Verificar depois.
+    uart = (void *)IO_UART_ADDR;    // Tambem deu problema. Tem que ver isso urgente.
 
     uart->cs.ctl = ctrl;
 
@@ -147,6 +154,7 @@ int main() {
         while( ! ( state = uart->cs.stat.s && TXempty )) {};
         //r[i] = char(uart->d.rx);
         r[i] = Getc();
+        //print( r[i] );
         to_stdout( r[i] );
     } while( r[i] != '\n' );
 

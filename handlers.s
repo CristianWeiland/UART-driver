@@ -1,3 +1,4 @@
+
 	# interrupt handlers
 	.include "cMIPS.s"
 	.text
@@ -49,7 +50,7 @@ extCounter:
      # save additional registers
      lui   $k1, %hi(_counter_buffer)
      ori   $k1, $k1, %lo(_counter_buffer)
-     sw    $jr, 0*4($k1)
+     sw    $ra, 4($k1)
 
 	lui   $k1, %hi(HW_counter_value)
 	ori   $k1, $k1, %lo(HW_counter_value)
@@ -78,7 +79,7 @@ extCounter:
      # restore same registers
      lui   $k1, %hi(_counter_buffer)
      ori   $k1, $k1, %lo(_counter_buffer)
-     lw    $jr, 0*4($k1)
+     lw    $ra, 0*4($k1)
 
 	mfc0  $k0, cop0_STATUS	    # Read STATUS register
 	ori   $k0, $k0, M_StatusIEn #   but do not modify its contents
@@ -130,7 +131,7 @@ UARTinterr:
     sw    $a0, 4*4($k0)                  # save some registers - CONFERIR ENDERECO
     sw    $a1, 5*4($k0)                  # CONFERIR ENDERECO
 
-	.include "../tests/handlerUART.s"
+	#.include "../tests/handlerUART.s"
 
  RX_Interr:
 	 andi  $a0, $k1, UART_rx_irq     # is this reception?
@@ -192,7 +193,7 @@ UARTinterr:
 
 UARTret:
     lui   $k0, %hi(_uart_buff)
-    ori   $k0, k0, %lo(_uart_buff)      # and save UART status to memory
+    ori   $k0, $k0, %lo(_uart_buff)      # and save UART status to memory
     lw    $a0, 4*4($k0)          # restore registers $a0,$a1, others?
     lw    $a1, 4*5($k0)
 
