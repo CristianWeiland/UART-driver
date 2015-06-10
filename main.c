@@ -1,12 +1,14 @@
 #include "handlers.s" // Enable e Disable interr.
-#include "cMIPS.h"
+//#include "cMIPS.h"  // Comentado porque jah tah sendo incluido pelo cMIPSio.c
 #include "cMIPSio.c" // Funções básicas (printf scanf etc.)
 
 #define NULL '\0' // Ou soh 0? Não sei.
 
+char r[16]="---------------";
+
 // LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, m
 
-typedef struct {
+typedef struct UD {
     char    rx_q[16];   // Reception Queue
     int     rx_hd;      // Reception Queue Head Index
     int     rx_tl;      // Reception Queue Tail Index
@@ -21,7 +23,7 @@ extern UARTdriver Ud;
 
 typedef struct {
     int buff[8];
-} RegBuffer
+} RegBuffer;
 
 extern RegBuffer _uart_buff;
 
@@ -55,7 +57,7 @@ typedef struct serial {
     Tdata d;
 } Tserial;
 
-volatile Tserial *uart = (void *)IO_UART_BOT_ADDR;
+volatile Tserial *uart;// = (void *)IO_UART_BOT_ADDR;
 
 int proberx() {
     return Ud.nrx;
@@ -67,13 +69,13 @@ int probetx() {
 
 int iostat() {
     // Pergunta valendo 1 milhao de reais: retorna status do processador (que zera quando vc le) ou da UART?
-    return uart.cs.stat & 0x000000ff; // Pelo fato de ter que retornar no lsb(byte) talvez tem que deslocar em vez de fazer o and.
+    return uart->cs.stat.s & 0x000000ff; // Pelo fato de ter que retornar no lsb(byte) talvez tem que deslocar em vez de fazer o and.
 }
 
 void ioctl(int i) {
     i = i & 0x000000ff; // Soh pode escrever no byte menos significativo. Zera tudo.
-    uart.cs.ctl = uart.cs.ctl & 0xffffff00;
-    uart.cs.ctl = uart.cs.ctl | i;
+    //uart->cs.ctl.AQUIII = uart->cs.ctl.AQUIII & 0xffffff00;
+    //uart->cs.ctl.AQUIII = uart->cs.ctl.AQUIII | i;
     printif("Eh pra dar erro. Tem que escrever no reg de ctrl do processador.");
     return ;
 }
@@ -98,7 +100,7 @@ char Getc() {
 int Putc(char c) {
     int status;
     if(Ud.ntx > 0) {
-        if(Ud.ntx == 16 && uart->cs.ctl.intTx == 1) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
+        if(Ud.ntx == 16 && uart->cs.ctl.intTX == 1) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
             //wrtc(c);
             return ;
         }
@@ -133,8 +135,8 @@ int main() {
     ctrl.intRX = 0;
     ctrl.speed = 3; // Roberto comentou sobre usar 2 ou 3. Na dúvida, deixemos mais lento, soh por segurança.
 
-    counter = (int *)IO_COUNT_BOT_ADDR;
-    uart = (void *)IO_UART_BOT_ADDR;
+    //counter = (int *)IO_COUNT_BOT_ADDR; // Deu problema no endereco, por isso comentei. Verificar depois.
+    //uart = (void *)IO_UART_BOT_ADDR;    // Tambem deu problema. Tem que ver isso urgente.
 
     uart->cs.ctl = ctrl;
 
