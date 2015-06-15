@@ -57,7 +57,7 @@ typedef struct serial {
     Tdata d;
 } Tserial;
 
-volatile Tserial *uart = (void *)IO_UART_ADDR;
+volatile Tserial *uart;
 
 int proberx() {
     return Ud.nrx;
@@ -80,15 +80,14 @@ void ioctl(int i) {
     return ;
 }
 
-char Getc() {
+char Getc(void) {
     char c;
     int status;
-    // Declaração
     if(Ud.nrx > 0) {
         status = disableInterr();
+        Ud.nrx = Ud.nrx - 1;
         c = Ud.rx_q[Ud.rx_hd]; // O char que vou retornar pega um char da cabeça da fila de recepção.
         Ud.rx_hd = (Ud.rx_hd + 1) % 16; // Incrementa a cabeça da fila de modo circular (usando mod tamanho da fila).
-        Ud.nrx = Ud.nrx - 1;
         status = enableInterr();
     }
     else {
@@ -97,11 +96,15 @@ char Getc() {
     return c;
 }
 
-int Putc(char c) {
-    int status;
+
+/*int Putc(char c) {
+    int status = uart->cs.stat.s & TXempty;
+    //print(Ud.ntx);
     if(Ud.ntx > 0) {
-        if(Ud.ntx == 16 && uart->cs.ctl.intTX == 1) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
-            //wrtc(c);
+        //if(Ud.ntx == 16 && status > 0) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
+        if( Ud.ntx < 16 && status > 0) {
+            uart->d.tx = c;
+            //print(c);
             return ;
         }
         status = disableInterr();
@@ -113,8 +116,29 @@ int Putc(char c) {
     else {
         c = -1;
     }
+    //print(c);
     return c;
+}*/
+
+
+int Putc(char c){
+        disableInterr();
+        if(Ud.ntx > 0){
+                --Ud.ntx;
+                Ud.tx_q[Ud.tx_tl] = c;
+                Ud.tx_tl = (Ud.tx_tl + 1) & 15;
+                if(Ud.ntx == 15){
+                        uart->d.tx = c;
+                        Ud.tx_hd = (Ud.tx_hd + 1) & 15;
+                        ++Ud.ntx;
+                }
+                enableInterr();
+                return 1;            
+        }
+        enableInterr();
+        return 0;
 }
+
 
 /*
 int wrtc(char c) {
@@ -130,38 +154,47 @@ int main() {
     volatile Tstatus status;
     char c, s[]="umastringbacana";
 
+    counter = (int *)IO_COUNT_ADDR; // Deu problema no endereco, por isso comentei. Verificar depois.
+    uart = (void *)IO_UART_ADDR;    // Tambem deu problema. Tem que ver isso urgente.
+
     state = disableInterr();
     Ud.rx_hd = 0;
     Ud.rx_tl = 0;
     Ud.tx_hd = 0;
     Ud.tx_tl = 0;
+    Ud.nrx = 0;
+    Ud.ntx = 16;
     state = enableInterr();
 
     ctrl.ign = 0;
+    ctrl.ign567 = 0;
     ctrl.intTX = 0;
-    ctrl.intRX = 0;
+    ctrl.intRX = 1;
     ctrl.speed = 3; // Roberto comentou sobre usar 2 ou 3. Na dúvida, deixemos mais lento, soh por segurança.
 
-    counter = (int *)IO_COUNT_ADDR; // Deu problema no endereco, por isso comentei. Verificar depois.
-    uart = (void *)IO_UART_ADDR;    // Tambem deu problema. Tem que ver isso urgente.
-
     uart->cs.ctl = ctrl;
-
+/*
     i = -1;
-
     do {
         i++;
-        while( ! ( state = uart->cs.stat.s && TXempty )) {};
-        //r[i] = char(uart->d.rx);
+        //while( ! ( (state = uart->cs.stat.s) & RXfull )) {};
+        while(Ud.nrx == 0) {};
         r[i] = Getc();
-        //print( r[i] );
-        to_stdout( r[i] );
-    } while( r[i] != '\n' );
-
-    // Teste entrada e saida da UART.
-    /*while( (c = Getc()) != '\0') {
-        Putc(c);
-        printf("%c",c);
-    }*/
-    print('\n');
+        print(r[i]);
+        //to_stdout(r[i]);
+    } while( r[i] != '\0' );
+*/
+   ctrl.intTX = 1;
+   ctrl.intRX = 0;
+   uart->cs.ctl = ctrl;
+   i = -1;
+   //r = "0123456789abcde";
+   do {
+      i++;
+      while(Ud.ntx == 0) {print(12);}
+      //while ( ! ( ( state = uart-> cs.stat.s ) & TXempty ) ) {};
+      //print(s[i]);
+      Putc(s[i]);
+       
+   } while ( s[i] != '\0'); // end of string ?
 }
