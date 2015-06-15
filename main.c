@@ -133,7 +133,7 @@ int Putc(char c){
                         ++Ud.ntx;
                 }
                 enableInterr();
-                return 1;            
+                return 1;
         }
         enableInterr();
         return 0;
@@ -166,7 +166,8 @@ int main() {
     Ud.ntx = 16;
     state = enableInterr();
 
-    ctrl.ign = 0;
+    //ioctl(27);  // ESSE COMMIT NAO TEM IOCTL ATUALIZADO! REVER ISSO!
+    ctrl.ign = 0; // Speed = 3 (011), intRX = 1(1), intTX = 1(1), resto = 0. Em inteiro, isso eh: 3+8+16=27.
     ctrl.ign567 = 0;
     ctrl.intTX = 0;
     ctrl.intRX = 1;
@@ -195,6 +196,6 @@ int main() {
       //while ( ! ( ( state = uart-> cs.stat.s ) & TXempty ) ) {};
       //print(s[i]);
       Putc(s[i]);
-       
+
    } while ( s[i] != '\0'); // end of string ?
 }

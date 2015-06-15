@@ -6,7 +6,7 @@
     .align 2
 
 	.set M_StatusIEn,0x0000ff09     # STATUS.intEn=1, user mode
-	
+
 	#----------------------------------------------------------------
 	# interrupt handler for external counter attached to IP2=HW0
 	# Counter address -- see vhdl/packageMemory.vhd
@@ -17,7 +17,7 @@
 	.comm   _counter_val 4
 	.comm   _counter_buffer 8*4       # area to save up to 8 registers
 	# _counter_buffer[0]=$a0, [1]=$a1, [2]=$a2, ...
-	
+
 	.set HW_counter_value,0xc00000c8 # Count 200 clock pulses & interr
 
 	.text
@@ -36,7 +36,7 @@ extCounter:
 	# sw $a0, 0*4($k1)
 	# sw $a1, 1*4($k1)
 	#----------------------------------
-	
+
      # save additional registers
      lui   $k1, %hi(_counter_buffer)
      ori   $k1, $k1, %lo(_counter_buffer)
@@ -75,7 +75,7 @@ extCounter:
 	ori   $k0, $k0, M_StatusIEn #   but do not modify its contents
 	addiu $k1, $zero, -7        #   except for re-enabling interrupts
 	and   $k0, $k1, $k0	    #   -7 = 0xffff.fff9
-	mtc0  $k0, cop0_STATUS	
+	mtc0  $k0, cop0_STATUS
 	eret			    # Return from interrupt
 	.end extCounter
 	#----------------------------------------------------------------
@@ -111,20 +111,20 @@ Ubuff:  .comm   _uart_buff 16*4        # save space to save registers
 
     # _uart_buff[0]=UARTstatus, [1]=UARTcontrol, [2]=data_inp, [3]=new,
     #           [4]=$ra, [5]=$a0, [6]=$a1, [7]=$a2, [8]=$a3, [9]=$v0
-	
+
 UARTinterr:
     lui   $k0, %hi(HW_uart_addr)
-    ori   $k0, $k0, %lo(HW_uart_addr)   #k1 = endereço uart
+    ori   $k0, $k0, %lo(HW_uart_addr)   # $k1 = endereço uart
     lw    $k1, 0($k0)                   # Read status, remove interrupt request - CONFERIR ENDERECO
-	
+
     lui   $k0, %hi(_uart_buff)
     ori   $k0, $k0, %lo(_uart_buff)     # and save UART status to memory
-    sw    $k1, 0($k0)                   
+    sw    $k1, 0($k0)
 
-    sw    $ra, 16($k0)
-    sw    $a0, 20($k0)                  # save some registers
+    sw    $ra, 16($k0)                  # save some registers
+    sw    $a0, 20($k0)
     sw    $a1, 24($k0)
-    sw    $v0, 36($k0)                  
+    sw    $v0, 36($k0)
 
 	#----------------------------------
     # while you are developing the complete handler,
@@ -140,7 +140,7 @@ UARTinterr:
      lui   $k0, %hi(Ud)              # carrega endereco da uart
      ori   $k0, $k0, %lo(Ud)
 
-     lw    $a0, 48($k0)            # carrega nrx (rxqueue + rxhead + rxtail + txqueue + txhead + tail + Utype) = (16+4+4+16+4+4+HW_uart_addr) - CONFERIR ENDERECO
+     lw    $a0, 48($k0)              # carrega nrx (rxqueue + rxhead + rxtail + txqueue + txhead + tail + Utype) = (16+4+4+16+4+4+HW_uart_addr) - CONFERIR ENDERECO
      nop
 
      slti  $a1, $a0, 16              # confere se nrx < 16
@@ -149,88 +149,102 @@ UARTinterr:
      nop
 
      addiu $a0, $a0, 1               # incrementa nrx
-     sw    $a0, 48($k0)            # salva nrx - CONFERIR ENDEREC
-	 lw    $a0, 20($k0)             # carrega rxtail - CONFERIR ENDERECO
+     sw    $a0, 48($k0)              # salva nrx - CONFERIR ENDEREC
+	 lw    $a0, 20($k0)              # carrega rxtail - CONFERIR ENDERECO
  	 nop
 
 	 addiu $a0, $a0, 1               # incrementa rxtail # notas de aula tah -1, porque seria -1? GG - CONFERIR SE INCREMENTA OU DECREMENTA
 	 andi  $a0, $a0, 0xf             # modu    lo 16
-	 sw    $a0, 20($k0)             # salva rxtail - CONFERIR ENDERECO
-    
-     lui   $k1, %hi(HW_uart_addr)
-     ori   $k1, $k1, %lo(HW_uart_addr)   #k1 = endereço uart
+	 sw    $a0, 20($k0)              # salva rxtail - CONFERIR ENDERECO
+
+     lui   $k1, %hi(HW_uart_addr)    # $k1 = endereço uart
+     ori   $k1, $k1, %lo(HW_uart_addr)
      nop
-     lw    $a1, 4($k1)             # ler data do uart rxreg - CONFERIR ENDERECO
+     lw    $a1, 4($k1)               # ler data do uart rxreg - CONFERIR ENDERECO
 
      addu  $a0, $a0, $k0             # adicionar tail index to &(Ud)
-     sb    $a1, 0($a0)             # coloca na posicao rxtail - CONFERIR ENDERECO
+     sb    $a1, 0($a0)               # coloca na posicao rxtail - CONFERIR ENDERECO
 
-     #j UARTret                      # Comment - i have to check if theres transmission.
+     # j UARTret                      # Comment - i have to check if theres transmission.
      # nop
 
-    # Ud[0-15]=rx_queue; Ud[16-19]=rx_hd; Ud[20-23]=rx_tl; Ud[24-39]=tx_queue;
-    # Ud[40-43]=tx_head; Ud[44-47]=tx_tl; Ud[48-51]=nrx; Ud[52-55]=ntx;
+     # Ud[0-15]=rx_queue; Ud[16-19]=rx_hd; Ud[20-23]=rx_tl; Ud[24-39]=tx_queue;
+     # Ud[40-43]=tx_head; Ud[44-47]=tx_tl; Ud[48-51]=nrx; Ud[52-55]=ntx;
  TX_Interr:
      lui   $k0, %hi(_uart_buff)      # nao le do HW_uart_addr porque jah foi lido anteriormente e isso zera as interrupcoes.
      ori   $k0, $k0, %lo(_uart_buff) # depois da primeira leitura salvamos na _uart_buff e agora vamos ler de lah.
-     lw    $k1, 0($k0)               # ler registrador de status 
+     nop                             # PRECISA?
+
+     lw    $k1, 0($k0)               # ler registrador de status
      nop
 
      andi  $a0, $k1, UART_tx_irq     # is this transmission?
+     nop                             # PRECISA?
      beq   $a0, $zero, UARTret       # if not, leave
      nop
 
      lui   $k0, %hi(Ud)
      ori   $k0, $k0, %lo(Ud)
+     nop                             # PRECISA?
 
-     nop
-     lw    $a0, 52($k0)            # load ntx - CONFERIR ENDERECO *
+     lw    $a0, 52($k0)              # load ntx - CONFERIR ENDERECO *
      nop
      slti  $a1, $a0, 16              # checks if ntx < 16 (theres something in there)
-     bne   $a1, $zero, UARTret       # if there isnt ((ntx < 16) != 0), do nothing. Leave.
+     nop                             # PRECISA?
+     beq   $a1, $zero, UARTret       # if it isnt ((ntx < 16) != 0), do nothing. Leave.
      nop
 
-     addi  $a0, $a0, 1               # incrementa ntx (retirou um elemento) - CONFERIR SE INCREMENTA OU DECREMENTA
+    #------------------------------------------------------------------------------#
+    # Resolvendo esse maldito slti e beq/bne.
+    # Se ntx = 16 -> slti faz $a1 receber 0. Depois, se $a1==0, saio (go to UARTret). Portanto, beq.
+    # Se ntx < 16 -> slti faz $a1 receber 1. Depois, se $a1==1, continuo. Portanto, beq.
+    #------------------------------------------------------------------------------#
 
-     lw    $k1, 40($k0)            # pega txhead - CONFERIR ENDERECO *
+     addi  $a0, $a0, 1               # incrementa ntx (retirou um elemento, tem mais um espaco.) - CONFERIR SE INCREMENTA OU DECREMENTA
+
+     lw    $k1, 40($k0)              # pega txhead - CONFERIR ENDERECO *
      nop
 
      addu  $a0, $k1, $k0             # calcula posicao do elemento (txqueue[txhead])
-     lb    $a1, 24($a0)             # copy txqueue[txhead] to tx buffer. - CONFERIR ENDEREÇO *
+     nop                             # PRECISA?
+     lb    $a1, 24($a0)              # copy txqueue[txhead] to tx buffer. - CONFERIR ENDEREÇO * (Ud + txhead + 24)
      addi  $k1, $k1, 1               # update txhead
-     sw    $k1, 40($k0) # salva txhead - CONFERIR ENDERECO *
+     nop                             # PRECISA?
+     nop                             # PRECISA?
+     sw    $k1, 40($k0)              # salva txhead - CONFERIR ENDERECO *
 
      lui   $k0, %hi(HW_uart_addr)
      ori   $k0, $k0, %lo(HW_uart_addr)
+     nop                             # PRECISA?
 
-     sw    $a1, 4($k0)       # salva o dado na buffer de transmissao da uart - CONFERIR ENDERECO *
+     sw    $a1, 4($k0)               # salva o dado na buffer de transmissao da uart - CONFERIR ENDERECO *
 
 UARTret:
 
     lui   $k0, %hi(_uart_buff)
-    ori   $k0, $k0, %lo(_uart_buff)      # and save UART status to memory
-    
-    lw    $ra, 16($k0)
-    lw    $a0, 20($k0)          # restore registers $a0,$a1, others?
-    lw    $a1, 24($k0)
-    lw    $v0, 36($k0)   
+    ori   $k0, $k0, %lo(_uart_buff)
 
-    mfc0  $k0, cop0_STATUS	    # Read STATUS register
-    ori   $k0, $k0, M_StatusIEn #   but do not modify its contents
-    addiu $k1, $zero, -7        #   except for re-enabling interrupts
-    and   $k0, $k1, $k0	       #   -7 = 0xffff.fff9 = user mode
-    mtc0  $k0, cop0_STATUS	
-    eret			    # Return from interrupt
+    lw    $ra, 16($k0)               # restore registers $ra, $a0, $a1, $v0
+    lw    $a0, 20($k0)
+    lw    $a1, 24($k0)
+    lw    $v0, 36($k0)
+
+    mfc0  $k0, cop0_STATUS	         # Read STATUS register
+    ori   $k0, $k0, M_StatusIEn      # but do not modify its contents
+    addiu $k1, $zero, -7             # except for re-enabling interrupts
+    and   $k0, $k1, $k0	             # -7 = 0xffff.fff9 = user mode
+    mtc0  $k0, cop0_STATUS
+    eret			                 # Return from interrupt
 
 overrun: #faz o syscall de erro
-    
+
 lui   $v0, %hi(_uart_buff)
-ori   $v0, $v0, %lo(_uart_buff)      # and save UART status to memory
+ori   $v0, $v0, %lo(_uart_buff)
 sw $k0, 8($v0)
 sw $k1, 12($v0)
 nop
 la $k1,x_IO_BASE_ADDR
-addi $k0, $zero, 3 
+addi $k0, $zero, 3
 nop
 sw $k0,0($k1)
 nop
@@ -243,29 +257,29 @@ nop
 	.end UARTinterr
 	#----------------------------------------------------------------
 
-	
+
 	#----------------------------------------------------------------
 	# handler for COUNT-COMPARE registers -- IP7=HW5
 	.text
 	.set    noreorder
 	.global countCompare
 	.ent    countCompare
-countCompare:	
+countCompare:
 	mfc0  $k1,cop0_COUNT    # read COMPARE and clear IRQ
 	addiu $k1,$k1,64	# set next interrupt in 64 ticks
-	mtc0  $k1,cop0_COMPARE  
+	mtc0  $k1,cop0_COMPARE
 
 	mfc0 $k0, cop0_STATUS	# Read STATUS register
 	ori  $k0, $k0, M_StatusIEn #   but do not modify its contents
 	lui  $k1, 0xffff        #   except for re-enabling interrupts
 	ori  $k1, $k1, 0xfff9   #   and going into user mode
 	and  $k0, $k1, $k0
-	mtc0 $k0, cop0_STATUS	
+	mtc0 $k0, cop0_STATUS
 	eret			# Return from interrupt
 	.end countCompare
 	#----------------------------------------------------------------
 
-	
+
 	#----------------------------------------------------------------
 	# functions to enable and disable interrupts, both return STATUS
 	.text
@@ -294,7 +308,7 @@ disableInterr:
 	#----------------------------------------------------------------
 
 
-	#----------------------------------------------------------------	
+	#----------------------------------------------------------------
 	# delays processing by approx 4*$a4 processor cycles
 	.text
 	.set    noreorder
