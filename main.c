@@ -98,6 +98,49 @@ char Getc(void) {
 
 
 /*int Putc(char c) {
+    // Possibilidade -> inserir na fila mesmo quando estiver tudo parado, e dai conferir se status > 0. Se true, a) gera interrupcao de transmissao forcada; b) faz como se fosse o wrtc, passando direto o char da fila como parametro (executar a interrupcao aqui no .c);
+
+    // Implementacao possibilidade a
+    /*
+    int status = uart->cs.stat.s & TXempty;
+    if(Ud.ntx > 0) {
+        status = disableInterr();
+        Ud.tx_q[Ud.tx_tl] = c;
+        Ud.tx_tl = (Ud.tx_tl + 1) % 16;
+        Ud.ntx = Ud.ntx - 1;
+        status = enableInterr();
+        if( Ud.ntx == 15 ) {
+            uart->cs.stat.s = uart->cs.stat.s | TXempty; // Forca interrupcao
+        }
+    }
+    else {
+        c = -1;
+    }
+    return c;
+    */
+
+    // Implementacao possibilidade b
+    /*
+    int status = uart->cs.stat.s & TXempty;
+    if(Ud.ntx > 0) {
+        status = disableInterr();
+        Ud.tx_q[Ud.tx_tl] = c;
+        Ud.tx_tl = (Ud.tx_tl + 1) % 16;
+        Ud.ntx = Ud.ntx - 1;
+        if( Ud.ntx == 15 && status > 0 ) {
+            wrtc(c);
+            Ud.ntx++;
+            Ud.tx_hd++;
+        }
+        status = enableInterr();
+    }
+    else {
+        c = -1;
+    }
+    return c;
+    */
+
+
     int status = uart->cs.stat.s & TXempty;
     //print(Ud.ntx);
     if(Ud.ntx > 0) {
