@@ -175,8 +175,14 @@ UARTinterr:
      ori   $k0, $k0, %lo(_uart_buff) # depois da primeira leitura salvamos na _uart_buff e agora vamos ler de lah.
      nop                             # PRECISA?
 
-     lw    $k1, 0($k0)               # ler registrador de status
+     lw    $a0, 0($k0)               # ler registrador de status
      nop
+
+     lui   $k0, %hi(HW_uart_addr)
+     ori   $k0, $k0, %lo(HW_uart_addr)
+     lw    $k1, 0($k0)
+
+     or    $k1, $a0, $k1             # Or entre status lido na interpretacao de recepcoes e status lido agora.
 
      andi  $a0, $k1, UART_tx_irq     # is this transmission?
      nop                             # PRECISA?
