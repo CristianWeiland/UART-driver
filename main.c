@@ -95,64 +95,27 @@ char Getc(void) {
     }
     return c;
 }
-
-
-/*int Putc(char c) {
-    // Possibilidade -> inserir na fila mesmo quando estiver tudo parado, e dai conferir se status > 0. Se true, a) gera interrupcao de transmissao forcada; b) faz como se fosse o wrtc, passando direto o char da fila como parametro (executar a interrupcao aqui no .c);
-
-    // Implementacao possibilidade a
-    /*
+/*
+0110 0010 - 0110 0001
+abcdfe/n
+00abcdfe
+0*16^8 + 0*16^7 + 10(a)*16^6...
+f0
+0a
+fa = 1111 1010
+abcdef
+*/
+int Putc(char c) {
     int status = uart->cs.stat.s & TXempty;
     if(Ud.ntx > 0) {
-        status = disableInterr();
-        Ud.tx_q[Ud.tx_tl] = c;
-        Ud.tx_tl = (Ud.tx_tl + 1) % 16;
-        Ud.ntx = Ud.ntx - 1;
-        status = enableInterr();
-        if( Ud.ntx == 15 ) {
-            uart->cs.stat.s = uart->cs.stat.s | TXempty; // Forca interrupcao
-        }
-    }
-    else {
-        c = -1;
-    }
-    return c;
-    */
-
-    // Implementacao possibilidade b
-    /*
-    int status = uart->cs.stat.s & TXempty;
-    if(Ud.ntx > 0) {
-        status = disableInterr();
-        Ud.tx_q[Ud.tx_tl] = c;
-        Ud.tx_tl = (Ud.tx_tl + 1) % 16;
-        Ud.ntx = Ud.ntx - 1;
-        if( Ud.ntx == 15 && status > 0 ) {
-            wrtc(c);
-            Ud.ntx++;
-            Ud.tx_hd++;
-        }
-        status = enableInterr();
-    }
-    else {
-        c = -1;
-    }
-    return c;
-    */
-
-
-    int status = uart->cs.stat.s & TXempty;
-    //print(Ud.ntx);
-    if(Ud.ntx > 0) {
-        //if(Ud.ntx == 16 && status > 0) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
-        if( Ud.ntx < 16 && status > 0) {
+        if( Ud.ntx == 16 && status > 0) { // Fila completamente vazia && a Uart nao pediu interrupção. Isso significa que a Uart não tem nenhum caracter pra enviar. Portanto, eu escrevo direto nela. - escreve direto na UART.
             uart->d.tx = c;
-            //print(c);
             return ;
         }
         status = disableInterr();
+        //print(c);
         Ud.tx_q[Ud.tx_tl] = c;
-        Ud.tx_tl = (Ud.tx_tl + 1) % 16;
+        Ud.tx_tl = (Ud.tx_tl + 1) & 0xf;
         Ud.ntx = Ud.ntx - 1;
         status = enableInterr();
     }
@@ -161,27 +124,36 @@ char Getc(void) {
     }
     //print(c);
     return c;
-}*/
+}
+/*
+int Putc(char c) {
+   disableInterr();
+   uart->d.tx = c;
+   enableInterr();
+   return 1;
+} */
 
-
+/*
 int Putc(char c){
-        disableInterr();
         if(Ud.ntx > 0){
+                disableInterr();
                 --Ud.ntx;
+                //print(Ud.tx_tl);
+                //print(Ud.tx_hd);
                 Ud.tx_q[Ud.tx_tl] = c;
                 Ud.tx_tl = (Ud.tx_tl + 1) & 15;
-                if(Ud.ntx == 15){
+                if((iostat() & TXempty) == TXempty) {
                         uart->d.tx = c;
                         Ud.tx_hd = (Ud.tx_hd + 1) & 15;
                         ++Ud.ntx;
                 }
                 enableInterr();
-                return 1;
+                return 1;            
         }
-        enableInterr();
+
         return 0;
 }
-
+*/
 
 /*
 int wrtc(char c) {
@@ -195,7 +167,7 @@ int main() {
     volatile int *counter;
     Tcontrol ctrl;
     volatile Tstatus status;
-    char c, s[]="umastringbacana";
+    char c, s[]="umastringbacan\n";
 
     counter = (int *)IO_COUNT_ADDR; // Deu problema no endereco, por isso comentei. Verificar depois.
     uart = (void *)IO_UART_ADDR;    // Tambem deu problema. Tem que ver isso urgente.
@@ -209,14 +181,13 @@ int main() {
     Ud.ntx = 16;
     state = enableInterr();
 
-    //ioctl(27);  // ESSE COMMIT NAO TEM IOCTL ATUALIZADO! REVER ISSO!
-    ctrl.ign = 0; // Speed = 3 (011), intRX = 1(1), intTX = 1(1), resto = 0. Em inteiro, isso eh: 3+8+16=27.
+    ctrl.ign = 0;
     ctrl.ign567 = 0;
     ctrl.intTX = 0;
     ctrl.intRX = 1;
-    ctrl.speed = 3; // Roberto comentou sobre usar 2 ou 3. Na dúvida, deixemos mais lento, soh por segurança.
+    ctrl.speed = 2; // Roberto comentou sobre usar 2 ou 3. Na dúvida, deixemos mais lento, soh por segurança.
 
-    uart->cs.ctl = ctrl;
+    //uart->cs.ctl = ctrl;
 /*
     i = -1;
     do {
@@ -231,14 +202,20 @@ int main() {
    ctrl.intTX = 1;
    ctrl.intRX = 0;
    uart->cs.ctl = ctrl;
+   //uart->d.tx = 'a';
+   //for(i=0;i<100;i++) {};
    i = -1;
    //r = "0123456789abcde";
    do {
       i++;
-      while(Ud.ntx == 0) {print(12);}
-      //while ( ! ( ( state = uart-> cs.stat.s ) & TXempty ) ) {};
-      //print(s[i]);
+      while ( ! ( ( state = uart-> cs.stat.s ) & TXempty ) ) {
+      //while(Ud.ntx == 0) {
+       //  print(12);
+      };
       Putc(s[i]);
-
-   } while ( s[i] != '\0'); // end of string ?
+      
+      //print(s[i]);
+       
+   } while ( s[i] != '\n'); // end of string ?
+for(i=0; i<200; i++);
 }

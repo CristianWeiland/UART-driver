@@ -195,6 +195,7 @@ UARTinterr:
 
      lw    $a0, 52($k0)              # load ntx - CONFERIR ENDERECO *
      nop
+
      slti  $a1, $a0, 16              # checks if ntx < 16 (theres something in there)
      nop                             # PRECISA?
      beq   $a1, $zero, UARTret       # if it isnt ((ntx < 16) != 0), do nothing. Leave.
@@ -214,7 +215,9 @@ UARTinterr:
      addu  $a0, $k1, $k0             # calcula posicao do elemento (txqueue[txhead])
      nop                             # PRECISA?
      lb    $a1, 24($a0)              # copy txqueue[txhead] to tx buffer. - CONFERIR ENDEREÇO * (Ud + txhead + 24)
+
      addi  $k1, $k1, 1               # update txhead
+     and   $k1, $k1, 15              # mod 16
      nop                             # PRECISA?
      nop                             # PRECISA?
      sw    $k1, 40($k0)              # salva txhead - CONFERIR ENDERECO *
