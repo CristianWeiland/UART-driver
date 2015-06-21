@@ -112,13 +112,25 @@ fa = 1111 1010
 abcdef
 */
 
+int pot(x,i){
+    int cont,pot=1;
+    for(cont=0;cont<i;cont++)
+        pot=pot*x;
+    return pot;
+}
+
 int chartoint(char *s) {
-   int i,j,soma=0,v[8];
-   for(i=0;s[i]!='\n';i++); // Conta quantos chars tem.
-   i--; // Desconsidera o \n do vetor.
-   for(j=7;j>7-i;j--) {
-      v[j] = (int)s[i]; // coloca a conversao pra inteiros no vetor depois preenche com 0.
-   }
+    int i,j,soma=0,v[8];
+    for(i=0;s[i]!='\n';i++) { // Conta quantos chars tem.
+        i=i;//print(s[i]);
+    }
+    /*print(256);
+    print(i);
+    print(512);*/
+    i--; // Desconsidera o \n do vetor.
+    for(j=7;j>7-i;j--) {
+        v[j] = (int)s[i]; // coloca a conversao pra inteiros no vetor depois preenche com 0.
+    }
 /*
   Ideia desse for de cima: se eu recebi abcd\n.
 Contei 4. Vou inserir no vetor assim:
@@ -126,22 +138,33 @@ Pos:  +-0-+-1-+-2-+-3-+-4-+-5-+-6-+-7-+
 Vetor:| - | - | - | - | a | b | c | d |
       +---+---+---+---+j+i+---+---+---+
 */
-   for(j=7-i;j>=0;j--) // Termina de encher com 0.
-      v[j] = 48; // Valor decimal do 0 em ascii.
+    for(j=7-i;j>=0;j--) // Termina de encher com 0.
+        v[j] = 48; // Valor decimal do 0 em ascii.
 // Tenho meu vetor preenchido com os numeros 0, 48-57, 97-102.
-   for(j=0;j<7;j++) {
-      if(v[j]<58) // Eh um numero (0-9). Subtrai 48 pra ficar 0,1,..,9, e nao 48,49,..,57
-         v[j]-=48;
-      else // Letra (a,b,..,f). Subtrai 87 pra ficar o valor certo (a = 97 -> 97-87 = 10. b = 98 -> 98-87=11.)
-         v[j]-=87;
-   }
+print(256);
+    for(j=0;j<8;j++) {
+        print(v[j]);
+        if(v[j]>47 && v[j]<58) // Eh um numero (0-9). Subtrai 48 pra ficar 0,1,..,9, e nao 48,49,..,57
+            v[j]-=48;
+        else if(v[j]>96 && v[j] < 103) // Letra (a,b,..,f). Subtrai 87 pra ficar o valor certo (a = 97 -> 97-87 = 10. b = 98 -> 98-87=11.)
+            v[j]-=87;
+        else // Eh algo que nao eh hexadecimal, zera.
+            v[j] = 0;
+        print(v[j]);
+    }
 
-   for(j=0;i>=0;i--,j++) {
-      soma += s[i] << j*4;
-   }
+print(512);
 
-   print(soma);
-   return soma;
+/*    for(j=0;i>=0;i--,j++) {
+        //soma += s[i] << j*4;
+        //soma += s[i] * pot(16,j);
+    }*/
+    for(i=0;i<8;i++) {
+        soma += s[i] * pot(16,7-i);
+    }
+
+    print(soma);
+    return soma;
 }
 
 int Putc(char c) {
@@ -237,11 +260,10 @@ int main() {
             while(Ud.nrx == 0) {};
             r[i] = Getc();
             //print(r[i]);
-            //to_stdout(r[i]);
         } while( r[i] != '\n');
         for(k=0; k <= i; k++) {
             cadeia[j][k]=r[k];
-            print(cadeia[j][k]);
+            //print(cadeia[j][k]);
         }
         i=0;
         r[i]=Getc();
@@ -250,8 +272,7 @@ int main() {
     } while (r[i] != '\n');
 
     for(i=0; i<j; i++) {
-        print(12);
-        print(chartoint(cadeia[j]));
+        print(chartoint(cadeia[i]));
     }
 /*
 13356527

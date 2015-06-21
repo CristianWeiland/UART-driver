@@ -253,7 +253,7 @@ sw $k0, 8($v0)
 sw $k1, 12($v0)
 nop
 la $k1,x_IO_BASE_ADDR
-addi $k0, $zero, 0
+addi $k0, $zero, 1
 nop
 sw $k0,0($k1)
 nop
