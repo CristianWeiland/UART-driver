@@ -145,7 +145,7 @@ UARTinterr:
 
      slti  $a1, $a0, 16              # confere se nrx < 16
      nop
-     beq   $a1, $zero, overrun       # quando n tem espaço deu overrun, pula pra lah
+     beq   $a1, $zero, UARTret       # quando n tem espaço deu overrun, pula pra lah
      nop
 
      addiu $a0, $a0, 1               # incrementa nrx
@@ -247,21 +247,9 @@ UARTret:
 
 overrun: #faz o syscall de erro
 
-lui   $v0, %hi(_uart_buff)
-ori   $v0, $v0, %lo(_uart_buff)
-sw $k0, 8($v0)
-sw $k1, 12($v0)
-nop
-la $k1,x_IO_BASE_ADDR
-addi $k0, $zero, 1
-nop
-sw $k0,0($k1)
-nop
-lw $k0, 8($v0)
-lw $k1, 12($v0)
-nop
+    j UARTret
+    nop
 
-    #eret
 
 	.end UARTinterr
 	#----------------------------------------------------------------

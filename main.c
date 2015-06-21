@@ -1,12 +1,7 @@
-//#include "handlers.s" // Enable e Disable interr.
-#include "cMIPS.h"  // Comentado porque jah tah sendo incluido pelo cMIPSio.c
-//#include "cMIPSio.c" // Funções básicas (printf scanf etc.)
+#include "cMIPS.h"  
+#define NULL '\0'
 
-#define NULL '\0' // Ou soh 0? Não sei.
-
-char r[16]="---------------";
-
-// LER!! Pra imprimir os testes, tem a função to_stdout(char) que o Roberto criou. Não esquecer de usar ela. Mas cuidar, porque ela só vai imprimir depois de receber um \0 ou \n. Não sei porque, m
+char r[16]="0000000000000";
 
 typedef struct UD {
     char    rx_q[16];   // Reception Queue
@@ -60,7 +55,8 @@ typedef struct serial {
 volatile Tserial *uart;
 
 int proberx() {
-    return Ud.nrx;
+    volatile UARTdriver *Ud_p = &(Ud);   
+    return Ud_p->nrx;
 }
 
 int probetx() {
@@ -68,12 +64,11 @@ int probetx() {
 }
 
 int iostat() {
-    // Pergunta valendo 1 milhao de reais: retorna status do processador (que zera quando vc le) ou da UART?
-    return uart->cs.stat.s & 0x000000ff; // Pelo fato de ter que retornar no lsb(byte) talvez tem que deslocar em vez de fazer o and.
+    return uart->cs.stat.s & 0x000000ff; 
 }
 
 void ioctl(int i) {
-    i = i & 0x000000ff; // Soh pode escrever no byte menos significativo. Zera tudo.
+    i = i & 0x000000ff; // Escreve no byte menos significativo. Zera tudo.
     //uart->cs.ctl.AQUIII = uart->cs.ctl.AQUIII & 0xffffff00;
     //uart->cs.ctl.AQUIII = uart->cs.ctl.AQUIII | i;
     //printif("Eh pra dar erro. Tem que escrever no reg de ctrl do processador.");
@@ -95,22 +90,22 @@ char Getc(void) {
     }
     return c;
 }
-/*
-0110 0010 - 0110 0001
-abcdfe/n
-00abcdfe
-0*16^8 + 0*16^7 + 10(a)*16^6...
-23
-ORDENA
-desconverte
-10001010101011101010101010101
-----
-11110000000000000000000000000
-f0
-0a
-fa = 1111 1010
-abcdef
-*/
+
+void sort(int v[],int a,int b) {
+    if(a >= b)
+        return ;
+    sort(v,a,b-1);
+    int chave,i;
+    chave = v[b];
+    i = b-1;
+    while(i>=0 && v[i]>chave)
+    {
+        v[i+1] = v[i];
+        i--;
+    }
+    v[i+1] = chave;
+}
+
 
 int pot(x,i){
     int cont,pot=1;
@@ -121,9 +116,8 @@ int pot(x,i){
 
 int chartoint(char *s) {
     int i,j,k,soma=0,v[8];
-    for(i=0;s[i]!='\n';i++) { // Conta quantos chars tem.
-        i=i;//print(s[i]);
-    }
+    for(i=0;s[i]!='\n';i++) // Conta quantos chars tem.
+        {};
     for(j=0;j<8;j++) // Deixa todas as posicoes zeradas.
         v[j] = 48;
     k = i-1;
@@ -140,13 +134,33 @@ int chartoint(char *s) {
             v[j] = 0;
     }
 
-    print(256);
     for(i=0;i<8;i++) {
-        print(v[i] * pot(16,7-i));
         soma += v[i] * ( pot(16,7-i) );
     }
     print(soma);
     return soma;
+}
+
+void inttochar(int x, char s[]) {
+    int a,i,j,n;
+// f0000000 - 0f000000 - 00f00000
+// 1234abcd
+    for(i=0; i < 8; i++) {
+        n = 15; // n = 00000000f
+        for(j=7; j > i; j--)
+            n = n << 4;
+        a = x & n;
+        for(j=7; j > i; j--)
+            a = a >> 4;
+        if(a >= 0 && a <= 9)
+            a += 48;
+        else if(a >= 10 && a <= 15)
+            a += 87;
+        else // Caso tenha algum problema e nao seja um valor em hexadecimal.
+            a = 48;
+        s[i] = a;
+        print(s[i]);
+    }
 }
 
 int Putc(char c) {
@@ -206,7 +220,7 @@ int wrtc(char c) {
 */
 
 int main() {
-    int i,j=0,k;
+    int i,j=0,k,v[16];
     volatile int state;
     volatile int *counter;
     Tcontrol ctrl;
@@ -218,7 +232,7 @@ int main() {
     uart = (void *)IO_UART_ADDR;    // Tambem deu problema. Tem que ver isso urgente.
 
     state = disableInterr();
-    Ud.rx_hd = 0;
+    Ud.rx_hd = 1;
     Ud.rx_tl = 0;
     Ud.tx_hd = 0;
     Ud.tx_tl = 0;
@@ -238,33 +252,55 @@ int main() {
     do {    
         do {
             i++;
-            //while( ! ( (state = uart->cs.stat.s) & RXfull )) {};
-            while(Ud.nrx == 0) {};
+            while(proberx() == 0); // Usa proberx para que o gcc nao otimize o codigo.
             r[i] = Getc();
-            //print(r[i]);
+            print(r[i]);
         } while( r[i] != '\n');
         for(k=0; k <= i; k++) {
             cadeia[j][k]=r[k];
             //print(cadeia[j][k]);
         }
         i=0;
+        while(proberx() == 0); // pra gcc nao otimizar
         r[i]=Getc();
-        ///print(r[i]);
+        print(r[i]);
         j++;
     } while (r[i] != '\n');
+    
+    //for(i=0;i<j;i++)
+    //    for(k=0;k<6;k++)
+    //        print(cadeia[i][k]);
+    
+    /*j++;
+    
+    for(i=0;i<7;i++)
+        r[i] = 48;
+    r[7] = 10;
 
     for(i=0; i<j; i++) {
-        k = chartoint(cadeia[i]);
-        //print(k);
+        v[i] = chartoint(cadeia[i]);
     }
+    
+    print(255);
+    for(i=0;i<j;i++)
+        print(v[i]);
+    print(256);
+    sort(v,0,j-1); // Ordena ateh a posicao j-1 pra nao ordenar o ultimo \n, que gera o fim da entrada.
+
+    for(i=0;i<j;i++) {
+        print(v[i]);
+        //print(512);
+        //inttochar(v[i], r);
+        //TRANSMITE R
+    }
+
 /*
 13356527
 74565
 11250607
 624485
 */
-    
-/*
+  /*  
    ctrl.intTX = 1;
    ctrl.intRX = 0;
    uart->cs.ctl = ctrl;
@@ -272,7 +308,7 @@ int main() {
    //for(i=0;i<100;i++) {};
    i = -1;
    //r = "0123456789abcde";
- /*  do {
+  do {
       i++;
       while ( ! ( ( state = uart-> cs.stat.s ) & TXempty ) ) {
       //while(Ud.ntx == 0) {
@@ -283,5 +319,5 @@ int main() {
       //print(s[i]);
        
    } while ( s[i] != '\n'); // end of string ?
-   for(i=0; i<200; i++);*/
+   for(i=0; i<200; i++); */
 }
