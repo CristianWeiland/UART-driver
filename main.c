@@ -100,11 +100,50 @@ char Getc(void) {
 abcdfe/n
 00abcdfe
 0*16^8 + 0*16^7 + 10(a)*16^6...
+23
+ORDENA
+desconverte
+10001010101011101010101010101
+----
+11110000000000000000000000000
 f0
 0a
 fa = 1111 1010
 abcdef
 */
+
+int chartoint(char *s) {
+   int i,j,soma=0,v[8];
+   for(i=0;s[i]!='\n';i++); // Conta quantos chars tem.
+   i--; // Desconsidera o \n do vetor.
+   for(j=7;j>7-i;j--) {
+      v[j] = (int)s[i]; // coloca a conversao pra inteiros no vetor depois preenche com 0.
+   }
+/*
+  Ideia desse for de cima: se eu recebi abcd\n.
+Contei 4. Vou inserir no vetor assim:
+Pos:  +-0-+-1-+-2-+-3-+-4-+-5-+-6-+-7-+
+Vetor:| - | - | - | - | a | b | c | d |
+      +---+---+---+---+j+i+---+---+---+
+*/
+   for(j=7-i;j>=0;j--) // Termina de encher com 0.
+      v[j] = 48; // Valor decimal do 0 em ascii.
+// Tenho meu vetor preenchido com os numeros 0, 48-57, 97-102.
+   for(j=0;j<7;j++) {
+      if(v[j]<58) // Eh um numero (0-9). Subtrai 48 pra ficar 0,1,..,9, e nao 48,49,..,57
+         v[j]-=48;
+      else // Letra (a,b,..,f). Subtrai 87 pra ficar o valor certo (a = 97 -> 97-87 = 10. b = 98 -> 98-87=11.)
+         v[j]-=87;
+   }
+
+   for(j=0;i>=0;i--,j++) {
+      soma += s[i] << j*4;
+   }
+
+   print(soma);
+   return soma;
+}
+
 int Putc(char c) {
     int status = uart->cs.stat.s & TXempty;
     if(Ud.ntx > 0) {
@@ -162,12 +201,13 @@ int wrtc(char c) {
 */
 
 int main() {
-    int i;
+    int i,j=0,k;
     volatile int state;
     volatile int *counter;
     Tcontrol ctrl;
     volatile Tstatus status;
     char c, s[]="umastringbacan\n";
+    char cadeia[16][9];
 
     counter = (int *)IO_COUNT_ADDR; // Deu problema no endereco, por isso comentei. Verificar depois.
     uart = (void *)IO_UART_ADDR;    // Tambem deu problema. Tem que ver isso urgente.
@@ -187,18 +227,40 @@ int main() {
     ctrl.intRX = 1;
     ctrl.speed = 2; // Roberto comentou sobre usar 2 ou 3. Na dúvida, deixemos mais lento, soh por segurança.
 
-    //uart->cs.ctl = ctrl;
-/*
+    uart->cs.ctl = ctrl;
+
     i = -1;
-    do {
-        i++;
-        //while( ! ( (state = uart->cs.stat.s) & RXfull )) {};
-        while(Ud.nrx == 0) {};
-        r[i] = Getc();
-        print(r[i]);
-        //to_stdout(r[i]);
-    } while( r[i] != '\0' );
+    do {    
+        do {
+            i++;
+            //while( ! ( (state = uart->cs.stat.s) & RXfull )) {};
+            while(Ud.nrx == 0) {};
+            r[i] = Getc();
+            //print(r[i]);
+            //to_stdout(r[i]);
+        } while( r[i] != '\n');
+        for(k=0; k <= i; k++) {
+            cadeia[j][k]=r[k];
+            print(cadeia[j][k]);
+        }
+        i=0;
+        r[i]=Getc();
+        ///print(r[i]);
+        j++;
+    } while (r[i] != '\n');
+
+    for(i=0; i<j; i++) {
+        print(12);
+        print(chartoint(cadeia[j]));
+    }
+/*
+13356527
+74565
+11250607
+624485
 */
+    
+/*
    ctrl.intTX = 1;
    ctrl.intRX = 0;
    uart->cs.ctl = ctrl;
@@ -206,7 +268,7 @@ int main() {
    //for(i=0;i<100;i++) {};
    i = -1;
    //r = "0123456789abcde";
-   do {
+ /*  do {
       i++;
       while ( ! ( ( state = uart-> cs.stat.s ) & TXempty ) ) {
       //while(Ud.ntx == 0) {
@@ -217,5 +279,5 @@ int main() {
       //print(s[i]);
        
    } while ( s[i] != '\n'); // end of string ?
-for(i=0; i<200; i++);
+   for(i=0; i<200; i++);*/
 }
