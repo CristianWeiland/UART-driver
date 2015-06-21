@@ -120,49 +120,31 @@ int pot(x,i){
 }
 
 int chartoint(char *s) {
-    int i,j,soma=0,v[8];
+    int i,j,k,soma=0,v[8];
     for(i=0;s[i]!='\n';i++) { // Conta quantos chars tem.
         i=i;//print(s[i]);
     }
-    /*print(256);
-    print(i);
-    print(512);*/
-    i--; // Desconsidera o \n do vetor.
-    for(j=7;j>7-i;j--) {
-        v[j] = (int)s[i]; // coloca a conversao pra inteiros no vetor depois preenche com 0.
+    for(j=0;j<8;j++) // Deixa todas as posicoes zeradas.
+        v[j] = 48;
+    k = i-1;
+    for(j=7;j>7-i;j--,k--) {
+        v[j] = s[k];
     }
-/*
-  Ideia desse for de cima: se eu recebi abcd\n.
-Contei 4. Vou inserir no vetor assim:
-Pos:  +-0-+-1-+-2-+-3-+-4-+-5-+-6-+-7-+
-Vetor:| - | - | - | - | a | b | c | d |
-      +---+---+---+---+j+i+---+---+---+
-*/
-    for(j=7-i;j>=0;j--) // Termina de encher com 0.
-        v[j] = 48; // Valor decimal do 0 em ascii.
-// Tenho meu vetor preenchido com os numeros 0, 48-57, 97-102.
-print(256);
+
     for(j=0;j<8;j++) {
-        print(v[j]);
-        if(v[j]>47 && v[j]<58) // Eh um numero (0-9). Subtrai 48 pra ficar 0,1,..,9, e nao 48,49,..,57
+        if(v[j] >= 48 && v[j] <= 57) // Eh um numero (0-9). Subtrai 48 pra ficar 0,1,..,9, e nao 48,49,..,57
             v[j]-=48;
-        else if(v[j]>96 && v[j] < 103) // Letra (a,b,..,f). Subtrai 87 pra ficar o valor certo (a = 97 -> 97-87 = 10. b = 98 -> 98-87=11.)
+        else if(v[j] >= 97 && v[j] <= 102) // Letra (a,b,..,f). Subtrai 87 pra ficar o valor certo (a = 97 -> 97-87 = 10. b = 98 -> 98-87=11.)
             v[j]-=87;
         else // Eh algo que nao eh hexadecimal, zera.
             v[j] = 0;
-        print(v[j]);
     }
 
-print(512);
-
-/*    for(j=0;i>=0;i--,j++) {
-        //soma += s[i] << j*4;
-        //soma += s[i] * pot(16,j);
-    }*/
+    print(256);
     for(i=0;i<8;i++) {
-        soma += s[i] * pot(16,7-i);
+        print(v[i] * pot(16,7-i));
+        soma += v[i] * ( pot(16,7-i) );
     }
-
     print(soma);
     return soma;
 }
@@ -272,7 +254,8 @@ int main() {
     } while (r[i] != '\n');
 
     for(i=0; i<j; i++) {
-        print(chartoint(cadeia[i]));
+        k = chartoint(cadeia[i]);
+        //print(k);
     }
 /*
 13356527
