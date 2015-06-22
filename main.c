@@ -118,6 +118,7 @@ int chartoint(char *s) {
     int i,j,k,soma=0,v[8];
     for(i=0;s[i]!='\n';i++) // Conta quantos chars tem.
         {};
+    v[i] =48; // Transforma o \n em 0 pra nao atrapalhar calculos. Ele vai ser atribuido novamente no inttochar.
     for(j=0;j<8;j++) // Deixa todas as posicoes zeradas.
         v[j] = 48;
     k = i-1;
@@ -127,9 +128,9 @@ int chartoint(char *s) {
 
     for(j=0;j<8;j++) {
         if(v[j] >= 48 && v[j] <= 57) // Eh um numero (0-9). Subtrai 48 pra ficar 0,1,..,9, e nao 48,49,..,57
-            v[j]-=48;
-        else if(v[j] >= 97 && v[j] <= 102) // Letra (a,b,..,f). Subtrai 87 pra ficar o valor certo (a = 97 -> 97-87 = 10. b = 98 -> 98-87=11.)
-            v[j]-=87;
+            v[j] -= 48;
+        else if(v[j] >= 97 && v[j] <= 102)   // Letra (a,b,..,f). Subtrai 87 pra ficar o valor certo
+            v[j] -= 87;                      // (a = 97 -> 97-87 = 10. b = 98 -> 98-87=11.)
         else // Eh algo que nao eh hexadecimal, zera.
             v[j] = 0;
     }
@@ -159,7 +160,11 @@ void inttochar(int x, char s[]) {
         else // Caso tenha algum problema e nao seja um valor em hexadecimal.
             a = 48;
         s[i] = a;
-        print(s[i]);
+    }
+    s[i+1] = 10;
+    while(s[0]  == 30) { // Se o caracter for 0, nao quero ele.
+        for(i=0;i<15;i++) // Ignora os 0's.
+            s[i] = s[i+1];
     }
 }
 
@@ -180,44 +185,8 @@ int Putc(char c) {
     else {
         c = -1;
     }
-    //print(c);
     return c;
 }
-/*
-int Putc(char c) {
-   disableInterr();
-   uart->d.tx = c;
-   enableInterr();
-   return 1;
-} */
-
-/*
-int Putc(char c){
-        if(Ud.ntx > 0){
-                disableInterr();
-                --Ud.ntx;
-                //print(Ud.tx_tl);
-                //print(Ud.tx_hd);
-                Ud.tx_q[Ud.tx_tl] = c;
-                Ud.tx_tl = (Ud.tx_tl + 1) & 15;
-                if((iostat() & TXempty) == TXempty) {
-                        uart->d.tx = c;
-                        Ud.tx_hd = (Ud.tx_hd + 1) & 15;
-                        ++Ud.ntx;
-                }
-                enableInterr();
-                return 1;            
-        }
-
-        return 0;
-}
-*/
-
-/*
-int wrtc(char c) {
-    return uart->d.tx = (int)c;
-}
-*/
 
 int main() {
     int i,j=0,k,v[16];
@@ -271,29 +240,25 @@ int main() {
     //    for(k=0;k<6;k++)
     //        print(cadeia[i][k]);
     
-    /*j++;
-    
     for(i=0;i<7;i++)
         r[i] = 48;
     r[7] = 10;
-
+    print(512);
     for(i=0; i<j; i++) {
         v[i] = chartoint(cadeia[i]);
     }
     
-    print(255);
-    for(i=0;i<j;i++)
-        print(v[i]);
-    print(256);
     sort(v,0,j-1); // Ordena ateh a posicao j-1 pra nao ordenar o ultimo \n, que gera o fim da entrada.
 
     for(i=0;i<j;i++) {
-        print(v[i]);
+        //print(v[i]);
         //print(512);
-        //inttochar(v[i], r);
+        inttochar(v[i], r);
         //TRANSMITE R
     }
 
+    //for(i=0;s[i]!='\n';i++) // Conta quantos chars tem.
+    //    {};
 /*
 13356527
 74565
